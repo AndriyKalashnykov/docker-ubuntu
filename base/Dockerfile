@@ -22,6 +22,7 @@ RUN groupadd -g $USER_GID $USER_NAME \
 
 RUN apt-get update \
     && DEBIAN_FRONTEND=$DEBIAN_FRONTEND apt-get install -y sudo locales nano zip unzip curl wget tree git git-core ssh gnupg \
+    net-tools ca-certificates apt-transport-https \
     && apt-get autoremove \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \

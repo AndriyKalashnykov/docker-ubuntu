@@ -29,10 +29,10 @@ cleanup                 - Cleanup docker images, containers, volumes, networks, 
 
 ```
 
-## Ubuntu base image
+## Dockerfile to build a Ubuntu baseimage with additional of extra packages
 
 ![ubuntu-base](./images/ubuntu-base.png)
 
-## Java dev image
+## Java dev image based off of Ubuntu baseimage
 
 ![ubuntu-java](./images/ubuntu-java.png)

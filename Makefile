@@ -1,25 +1,25 @@
 .DEFAULT_GOAL := help
 
-SHELL  				:= /bin/bash
-SDKMAN				:= $(HOME)/.sdkman/bin/sdkman-init.sh
-CURRENT_USER_NAME	:= $(shell whoami)
+SHELL := /bin/bash
+SDKMAN := $(HOME)/.sdkman/bin/sdkman-init.sh
+CURRENT_USER_NAME := $(shell whoami)
 
-UBUNTU_VERSION		:=	21.10
-JAVA_VERSION 		:= 	11.0.11.hs-adpt
-MAVEN_VERSION		:= 	3.8.1
-USER_UID			:=	1000
-USER_GID			:=	1000
-USER_NAME			:=	user
+UBUNTU_VERSION := 21.10
+JAVA_VERSION := 11.0.11.hs-adpt
+MAVEN_VERSION := 3.8.1
+USER_UID := 1000
+USER_GID := 1000
+USER_NAME := user
 
-IMAGE							:= docker-ubuntu-base
-IMAGE_NAME						:= $$DOCKER_LOGIN/${IMAGE}:${UBUNTU_VERSION}
-IMAGE_INLINE_CACHE_NAME			:= $$DOCKER_LOGIN/${IMAGE}-cache:${UBUNTU_VERSION}
+IMAGE := docker-ubuntu-base
+IMAGE_NAME := $$DOCKER_LOGIN/${IMAGE}:${UBUNTU_VERSION}
+IMAGE_INLINE_CACHE_NAME	:= $$DOCKER_LOGIN/${IMAGE}-cache:${UBUNTU_VERSION}
 
-IMAGE_JAVA						:= docker-ubuntu-java
-IMAGE_JAVA_NAME					:= $$DOCKER_LOGIN/${IMAGE_JAVA}:${UBUNTU_VERSION}
-IMAGE_JAVA_INLINE_CACHE_NAME	:= $$DOCKER_LOGIN/${IMAGE_JAVA}-cache:${UBUNTU_VERSION}
+IMAGE_JAVA := docker-ubuntu-java
+IMAGE_JAVA_NAME := $$DOCKER_LOGIN/${IMAGE_JAVA}:${UBUNTU_VERSION}
+IMAGE_JAVA_INLINE_CACHE_NAME := $$DOCKER_LOGIN/${IMAGE_JAVA}-cache:${UBUNTU_VERSION}
 
-DOCKER_REGISTRY :=  docker.io
+DOCKER_REGISTRY := docker.io
 export DOCKER_SCAN_SUGGEST=false
 
 # make sure docker is installed

@@ -61,8 +61,9 @@ check-env:
 login: check-env
 	@docker login --username $$DOCKER_LOGIN --password $$DOCKER_PWD $$DOCKER_REGISTRY
 
-
 SSH_PRIVATE_KEY := $(shell cat ~/.ssh/id_rsa)
+SSH_PUBLIC_KEY	:= $(shell cat ~/.ssh/id_rsa.pub)
+
 #build-inline-cache: @ Build remote cache for the docker dev image
 build-inline-cache: check-env
 	@DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg JAVA_VERSION=${JAVA_VERSION} --build-arg MAVEN_VERSION=${MAVEN_VERSION} --build-arg USER_UID=${USER_UID} --build-arg USER_GID=${USER_GID} --build-arg USER_NAME=${USER_NAME} -t $(IMAGE_INLINE_CACHE_NAME) .
@@ -70,7 +71,7 @@ build-inline-cache: check-env
 
 #build: @ Build docker dev image
 build: check-env
-	@DOCKER_BUILDKIT=1 docker build --build-arg SSH_PRIVATE_KEY="$(SSH_PRIVATE_KEY)" --cache-from $(IMAGE_INLINE_CACHE_NAME) --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg JAVA_VERSION=${JAVA_VERSION} --build-arg MAVEN_VERSION=${MAVEN_VERSION} --build-arg USER_UID=${USER_UID} --build-arg USER_GID=${USER_GID} --build-arg USER_NAME=${USER_NAME} -t $(IMAGE_NAME) .
+	@DOCKER_BUILDKIT=1 docker build --build-arg SSH_PUBLIC_KEY="$(SSH_PUBLIC_KEY)" --build-arg SSH_PRIVATE_KEY="$(SSH_PRIVATE_KEY)" --cache-from $(IMAGE_INLINE_CACHE_NAME) --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg JAVA_VERSION=${JAVA_VERSION} --build-arg MAVEN_VERSION=${MAVEN_VERSION} --build-arg USER_UID=${USER_UID} --build-arg USER_GID=${USER_GID} --build-arg USER_NAME=${USER_NAME} -t $(IMAGE_NAME) .
 
 #verison: @ Run git version docker dev image
 version: check-env build
@@ -92,6 +93,9 @@ IMAGE_CACHE_CMD := docker images --filter=reference=$(IMAGE_INLINE_CACHE_NAME) -
 IMAGE_CACHE_ID  := $(shell $(IMAGE_CACHE_CMD))
 IMAGE_CACHE_CNT := $(shell $(IMAGE_CACHE_CMD) | wc -l)
 
+IMAGE_LAYER_CMD := docker images -q --filter label=stage=docker-ubuntu-dev
+IMAGE_LAYER_CNT := $(shell $(IMAGE_LAYER_CMD) | wc -l)
+
 #delete: @ Delete docker dev image locally
 delete: check-env
 
@@ -100,7 +104,10 @@ ifeq ($(shell test $(IMAGE_CNT) -gt 0; echo $$?),0)
 	docker rmi -f $(IMAGE_ID) 
 endif
 
-#	@docker rmi -f $(shell docker images -q --filter label=stage=docker-ubuntu-dev)
+ifeq ($(shell test $(IMAGE_CNT) -gt 0; echo $$?),0)
+# remove image layers
+	@docker rmi -f $(IMAGE_LAYER_CMD) 
+endif
 
 ifeq ($(shell test $(IMAGE_CACHE_CNT) -gt 0; echo $$?),0)
 # remove image inline cache

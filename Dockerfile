@@ -28,7 +28,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /tmp/* \
     && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 \
-    && echo "$USER_NAME:$USER_PWD" | chpasswd && usermod -aG sudo $USER_NAME 
+    && echo "$USER_NAME:$USER_PWD" | chpasswd \
+    && usermod -aG sudo $USER_NAME 
 
 # RUN echo "${SSH_PRIVATE_KEY}" > /home/$USER_NAME/.ssh/id_rsa
 

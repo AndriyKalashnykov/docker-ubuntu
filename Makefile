@@ -205,6 +205,6 @@ endif
 
 	@docker builder prune -af
 
-make-images:
+img:
 	@silicon ./base/Dockerfile -o ./images/ubuntu-base.png --background '#fff0'
 	@silicon Dockerfile -o ./images/ubuntu-java.png --background '#fff0'

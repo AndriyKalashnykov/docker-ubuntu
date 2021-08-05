@@ -31,7 +31,8 @@ RUN apt-get update \
     && echo "$USER_NAME:$USER_PWD" | chpasswd \
     && usermod -aG sudo $USER_NAME 
 
-# RUN echo "${SSH_PRIVATE_KEY}" > /home/$USER_NAME/.ssh/id_rsa
+# RUN echo "${SSH_PRIVATE_KEY}" > /home/$USER_NAME/.ssh/id_rsa \
+#     && echo "${SSH_PUBLIC_KEY}" > /home/$USER_NAME/.ssh/id_rsa.pub
 
 RUN ssh-keygen -t rsa -b 4096 -N '' -C $USER_EMAIL -f /home/$USER_NAME/.ssh/id_rsa
 
@@ -56,10 +57,10 @@ RUN git config --global user.name $USER_NAME \
 # Switching to non-root user to install SDKMAN!
 USER $USER_UID:$USER_GID
 
-# # Downloading SDKMAN!
+# Downloading SDKMAN!
 RUN curl -s "https://get.sdkman.io" | bash
 
-# # Installing Java and Maven, removing some unnecessary SDKMAN files
+# Installing Java and Maven, removing some unnecessary SDKMAN files
 RUN bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && \
     yes | sdk install java $JAVA_VERSION && \
     yes | sdk install maven $MAVEN_VERSION && \

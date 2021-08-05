@@ -1,7 +1,7 @@
 # docker-ubuntu
 Docker based Ubuntu dev environment
 
-## Run help
+## Help
 
 ```markdown
 make help
@@ -28,3 +28,11 @@ build-push-all          - Build and push all cache and images
 cleanup                 - Cleanup docker images, containers, volumes, networks, build cache
 
 ```
+
+## Ubuntu base image
+
+![ubuntu-base](./images/ubuntu-base.png)
+
+## Java dev image
+
+![ubuntu-java](./images/ubuntu-java.png)

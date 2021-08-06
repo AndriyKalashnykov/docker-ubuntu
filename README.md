@@ -3,7 +3,7 @@ Docker based Ubuntu dev environment
 
 ## Help
 
-```markdown
+```console
 make help
 
 Usage: make COMMAND

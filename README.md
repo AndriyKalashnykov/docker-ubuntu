@@ -4,7 +4,7 @@ Docker based Ubuntu dev environment
 ## Help
 
 ```console
-make help
+$ make help
 
 Usage: make COMMAND
 

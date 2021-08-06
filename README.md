@@ -3,6 +3,13 @@ Docker based Ubuntu dev environment
 
 ## Help
 
+```{r, attr.source='.numberLines'}
+if (TRUE) {
+  x <- 1:10
+  x + 1
+}
+```
+```
 
 ![make-help](./images/carbon.png)
 

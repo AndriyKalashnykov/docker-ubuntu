@@ -3,6 +3,9 @@ Docker based Ubuntu dev environment
 
 ## Help
 
+
+![make-help](./images/carbon.png)
+
 ```console
 $ make help
 

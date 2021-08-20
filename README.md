@@ -5,6 +5,16 @@ Ubuntu dev environment docker image
 
 ![make-help](./images/carbon.png)
 
+
+## Pre-Requisites
+
+* [Docker](https://docs.docker.com/get-docker/)
+
+* DockerHub login and password
+  
+    ```bash
+    DOCKER_LOGIN= 
+    DOCKER_PWD=
 ## Ubuntu base docker image with additional packages
 
 ![ubuntu-base](./images/ubuntu-base.png)

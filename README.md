@@ -1,14 +1,14 @@
 # docker-ubuntu
-Docker based Ubuntu dev environment
+Ubuntu dev environment image
 
 ## Help
 
 ![make-help](./images/carbon.png)
 
-## Dockerfile to build a Ubuntu baseimage with additional of extra packages
+## Ubuntu docker image with additional packages
 
 ![ubuntu-base](./images/ubuntu-base.png)
 
-## Java dev image based off of Ubuntu baseimage
+## Java dev docker image off of Ubuntu base image
 
 ![ubuntu-java](./images/ubuntu-java.png)

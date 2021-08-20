@@ -21,8 +21,9 @@ RUN groupadd -g $USER_GID $USER_NAME \
     && useradd -m -g $USER_GID -u $USER_UID --shell /bin/bash $USER_NAME
 
 RUN apt-get update \
-    && DEBIAN_FRONTEND=$DEBIAN_FRONTEND apt-get install -y sudo locales nano zip unzip curl wget tree git git-core ssh gnupg \
-    net-tools ca-certificates apt-transport-https \
+    && DEBIAN_FRONTEND=$DEBIAN_FRONTEND apt-get install -y sudo locales nano zip unzip rar curl wget tree git gitg git-core ssh \
+    gnupg gnupg2 net-tools ca-certificates apt-transport-https jq httpie htop nmon html-xml-utils libxml2-utils \
+    xmlstarlet libnss3-tools variety xdotool buildah podman skopeo slirp4netns ansible \
     && apt-get autoremove \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
@@ -31,6 +32,9 @@ RUN apt-get update \
     && echo "$USER_NAME:$USER_PWD" | chpasswd \
     && usermod -aG sudo $USER_NAME \
     && mkdir -p /home/$USER_NAME/.ssh/
+
+COPY scripts/ /
+RUN /install-all.sh
 
 # RUN echo "${SSH_PRIVATE_KEY}" > /home/$USER_NAME/.ssh/id_rsa \
 #     && echo "${SSH_PUBLIC_KEY}" > /home/$USER_NAME/.ssh/id_rsa.pub

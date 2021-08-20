@@ -12,7 +12,7 @@ ARG USER_EMAIL="user@test.com"
 ARG IMAGE_LABEL="docker-ubuntu-base"
 ARG SSH_PUBLIC_KEY
 ARG SSH_PRIVATE_KEY
-ENV DEBIAN_FRONTEND noninteractive
+
 ENV TERM xterm
 
 LABEL stage=$IMAGE_LABEL
@@ -21,15 +21,16 @@ RUN groupadd -g $USER_GID $USER_NAME \
     && useradd -m -g $USER_GID -u $USER_UID --shell /bin/bash $USER_NAME
 
 RUN apt-get update \
-    && DEBIAN_FRONTEND=$DEBIAN_FRONTEND apt-get install -y sudo locales nano zip unzip rar curl wget tree git gitg git-core ssh \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y sudo locales nano zip unzip rar curl wget tree git gitg git-core ssh \
     gnupg gnupg2 net-tools ca-certificates apt-transport-https jq httpie htop nmon html-xml-utils libxml2-utils \
     xmlstarlet libnss3-tools variety xdotool buildah podman skopeo slirp4netns \
     && apt-get autoremove \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /tmp/* \
-    && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 \
-    && echo "$USER_NAME:$USER_PWD" | chpasswd \
+    && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
+
+RUN echo "$USER_NAME:$USER_PWD" | chpasswd \
     && usermod -aG sudo $USER_NAME \
     && mkdir -p /home/$USER_NAME/.ssh/
 

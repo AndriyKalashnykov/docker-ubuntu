@@ -23,7 +23,7 @@ RUN groupadd -g $USER_GID $USER_NAME \
 RUN apt-get update \
     && DEBIAN_FRONTEND=$DEBIAN_FRONTEND apt-get install -y sudo locales nano zip unzip rar curl wget tree git gitg git-core ssh \
     gnupg gnupg2 net-tools ca-certificates apt-transport-https jq httpie htop nmon html-xml-utils libxml2-utils \
-    xmlstarlet libnss3-tools variety xdotool buildah podman skopeo slirp4netns ansible \
+    xmlstarlet libnss3-tools variety xdotool buildah podman skopeo slirp4netns \
     && apt-get autoremove \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \

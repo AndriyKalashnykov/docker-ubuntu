@@ -14,7 +14,7 @@ mv ./kubectl /usr/local/bin/kubectl
 ./install-buildpacks.sh
 ./install-carvel.sh
 ./install-hugo.sh
-./install-customize.sh
+./install-kustomize.sh
 ./install-opa.sh
 ./install-s2i.sh
 ./install-skaffold.sh

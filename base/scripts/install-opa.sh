@@ -14,8 +14,6 @@ ARCH=amd64
 
 cd ${TMP_DIR}
 
-$PROJECT version
-
 # curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64
 # curl -L -o opa https://github.com/open-policy-agent/opa/releases/download/v0.28.0/opa_linux_amd64
 

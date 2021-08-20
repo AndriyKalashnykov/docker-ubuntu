@@ -80,7 +80,7 @@ build-base: check-env
 
 #run-base: @ Run base image
 run-base: check-env build-base
-	@docker run -it --rm -u $$UID $(IMAGE_NAME) bash
+	@docker run -it --rm $(IMAGE_NAME) bash
 
 #push-base: @ Push base image to a registry
 push-base: login build-base
@@ -127,7 +127,7 @@ build-java: check-env build-base
 
 #run-java: @ Run java dev image
 run-java: check-env build-java
-	@docker run -it --rm -u $$UID $(IMAGE_JAVA_NAME) bash
+	@docker run -it --rm $(IMAGE_JAVA_NAME) bash
 
 #push-java: @ Push java dev image to a registry
 push-java: login build-java

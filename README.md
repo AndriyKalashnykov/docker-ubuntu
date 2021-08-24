@@ -13,6 +13,8 @@ Ubuntu dev environment docker image
 * DockerHub login and password
   
     ```bash
+    #!/bin/bash
+    
     DOCKER_LOGIN= 
     DOCKER_PWD=
 ## Ubuntu base docker image with additional packages

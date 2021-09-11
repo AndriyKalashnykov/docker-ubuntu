@@ -1,5 +1,6 @@
 # docker-ubuntu
 Ubuntu dev environment docker image
+[![Docker Pulls](https://img.shields.io/docker/pulls/andriykalashnykov/docker-ubuntu-base.svg)](https://hub.docker.com/r/andriykalashnykov/docker-ubuntu-base/)
 
 ## Help
 

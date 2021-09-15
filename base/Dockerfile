@@ -21,7 +21,7 @@ LABEL stage=$IMAGE_LABEL
 
 RUN groupadd -g $USER_GID $USER_NAME && useradd -m -g $USER_GID -u $USER_UID --shell /bin/bash $USER_NAME
 
-RUN apt-get install -y apt-transport-https && apt-get -y update && DEBIAN_FRONTEND=noninteractive apt-get install -y sudo ssh locales lsb-core nano zip unzip rar curl wget tree git gitg git-core \ 
+RUN apt-get -y update && DEBIAN_FRONTEND=noninteractive apt-get install -y sudo ssh locales lsb-core nano zip unzip rar curl wget tree git gitg git-core \ 
     gnupg gnupg2 net-tools ca-certificates jq httpie htop nmon iputils-ping html-xml-utils libxml2-utils xmlstarlet libnss3-tools slirp4netns \
     xdotool buildah podman skopeo \
     && apt-get autoremove && apt-get autoclean \

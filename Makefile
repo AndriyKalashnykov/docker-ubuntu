@@ -123,7 +123,7 @@ build-java-inline-cache: check-env build-base
 
 #build-java: @ Build java dev image
 build-java: check-env build-base
-	@DOCKER_BUILDKIT=1 docker build --build-arg IMAGE_LABEL=${IMAGE_JAVA} --build-arg SSH_PUBLIC_KEY="$(SSH_PUBLIC_KEY)" --build-arg SSH_PRIVATE_KEY="$(SSH_PRIVATE_KEY)" --cache-from $(IMAGE_JAVA_INLINE_CACHE_NAME) --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg JAVA_VERSION=${JAVA_VERSION} --build-arg MAVEN_VERSION=${MAVEN_VERSION} -t $(IMAGE_JAVA_NAME) .
+	@DOCKER_BUILDKIT=0 docker build --build-arg IMAGE_LABEL=${IMAGE_JAVA} --build-arg SSH_PUBLIC_KEY="$(SSH_PUBLIC_KEY)" --build-arg SSH_PRIVATE_KEY="$(SSH_PRIVATE_KEY)" --cache-from $(IMAGE_JAVA_INLINE_CACHE_NAME) --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg JAVA_VERSION=${JAVA_VERSION} --build-arg MAVEN_VERSION=${MAVEN_VERSION} -t $(IMAGE_JAVA_NAME) .
 
 #run-java: @ Run java dev image
 run-java: check-env build-java

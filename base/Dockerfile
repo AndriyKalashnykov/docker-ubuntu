@@ -57,13 +57,13 @@ RUN git config --global user.name $USER_NAME \
     && chown -R $USER_UID:$USER_GID  /home/$USER_NAME/.ssh/ \
     && eval "$(ssh-agent)" \
     && ssh-agent -s \
-    && ssh-add /home/$USER_NAME/.ssh/id_rsa
+    && ssh-add /home/$USER_NAME/.ssh/id_rsa \
+    && echo "\nexport TERM=$TERM" >> /home/$USER_NAME/.bashrc \
+    && chown -R $USER_UID:$USER_GID  /home/$USER_NAME/
 
 USER $USER_UID:$USER_GID
 
 WORKDIR /home/$USER_NAME
-
-RUN echo "\nexport TERM=$TERM" >> /home/$USER_NAME/.bashrc
 
 CMD ["/bin/bash"]
 

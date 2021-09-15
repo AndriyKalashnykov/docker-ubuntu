@@ -29,7 +29,7 @@ USER $USER_UID:$USER_GID
 # followint line skips caching of downloaded ldap-server.jar
 ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache
 # Downloading SDKMAN!
-RUN curl -s "https://get.sdkman.io" | bash && tree $HOME/.sdkman && ls -al /home/
+RUN curl -vs "https://get.sdkman.io" | bash && tree $HOME/.sdkman && ls -al /home/
 # Installing Java and Maven, removing some unnecessary SDKMAN files
 # RUN bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && \
 #     yes | sdk install java $JAVA_VERSION && \

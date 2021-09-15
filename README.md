@@ -1,4 +1,4 @@
-# Ubuntu dev environment docker image
+# Ubuntu Dev environment Docker image
 [![main](https://github.com/AndriyKalashnykov/docker-ubuntu/actions/workflows/main.yml/badge.svg)](https://github.com/AndriyKalashnykov/docker-ubuntu/actions/workflows/main.yml)
 [![Ubuntu Base - Docker Pulls](https://img.shields.io/docker/pulls/andriykalashnykov/docker-ubuntu-base.svg)](https://hub.docker.com/r/andriykalashnykov/docker-ubuntu-base/)
 [![Ubuntu JDK - Docker Pulls](https://img.shields.io/docker/pulls/andriykalashnykov/docker-ubuntu-java.svg)](https://hub.docker.com/r/andriykalashnykov/docker-ubuntu-java/)

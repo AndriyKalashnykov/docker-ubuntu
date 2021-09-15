@@ -21,8 +21,16 @@
     DOCKER_PWD=
 ## Ubuntu base docker image with additional packages
 
-![ubuntu-base](./images/ubuntu-base.png)
+<!-- ![ubuntu-base](./images/ubuntu-base.png) -->
+```bash
+make build-base
+make run-base
+```
 
 ## Java dev environment docker image off of Ubuntu base image
 
-![ubuntu-java](./images/ubuntu-java.png)
+<!-- ![ubuntu-java](./images/ubuntu-java.png) -->
+```bash
+make build-java
+make run-java
+```

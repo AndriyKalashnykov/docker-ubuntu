@@ -30,7 +30,7 @@ SHELL ["/bin/bash", "-c"]
 # RUN apt-get -y update
 # RUN apt-get install -y --no-install-recommends apt-utils ca-certificates openssl curl zip unzip tree apt-transport-https iputils-ping 
 
-# fskips caching
+# skip caching
 ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache
 # Downloading SDKMAN!
 RUN curl -vsSL "https://get.sdkman.io" | bash

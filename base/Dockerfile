@@ -1,6 +1,6 @@
 # https://hub.docker.com/_/ubuntu/
 
-ARG UBUNTU_VERSION="21.10"
+ARG UBUNTU_VERSION="21.04"
 
 FROM ubuntu:$UBUNTU_VERSION
 
@@ -25,8 +25,8 @@ RUN apt-get install -y apt-transport-https && apt-get -y update && DEBIAN_FRONTE
     && apt-get autoremove && apt-get autoclean \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
-    && rm -rf /tmp/* 
-    # && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
+    && rm -rf /tmp/* \
+    && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
 RUN echo "$USER_NAME:$USER_PWD" | chpasswd && usermod -aG sudo $USER_NAME && mkdir -p /home/$USER_NAME/.ssh/
 
@@ -63,4 +63,5 @@ USER $USER_UID:$USER_GID
 WORKDIR /home/$USER_NAME
 
 CMD ["/bin/bash"]
+# lsb_release -a
 

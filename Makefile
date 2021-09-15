@@ -4,7 +4,7 @@ SHELL := /bin/bash
 SDKMAN := $(HOME)/.sdkman/bin/sdkman-init.sh
 CURRENT_USER_NAME := $(shell whoami)
 
-UBUNTU_VERSION := 21.10
+UBUNTU_VERSION := 21.04
 JAVA_VERSION := 11.0.11.hs-adpt
 MAVEN_VERSION := 3.8.1
 USER_UID := 1000
@@ -79,7 +79,7 @@ build-base: check-env
 	@DOCKER_BUILDKIT=1 docker build --build-arg IMAGE_LABEL=${IMAGE} --build-arg SSH_PUBLIC_KEY="$(SSH_PUBLIC_KEY)" --build-arg SSH_PRIVATE_KEY="$(SSH_PRIVATE_KEY)" --cache-from $(IMAGE_INLINE_CACHE_NAME) --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg USER_UID=${USER_UID} --build-arg USER_GID=${USER_GID} --build-arg USER_NAME=${USER_NAME} -t $(IMAGE_NAME) ./base
 
 #run-base: @ Run base image
-run-base: check-env build-base
+run-base: check-env
 	@docker run -it --rm $(IMAGE_NAME) bash
 
 #push-base: @ Push base image to a registry
@@ -123,10 +123,10 @@ build-java-inline-cache: check-env build-base
 
 #build-java: @ Build java dev image
 build-java: check-env build-base
-	@DOCKER_BUILDKIT=0 docker build --build-arg IMAGE_LABEL=${IMAGE_JAVA} --build-arg SSH_PUBLIC_KEY="$(SSH_PUBLIC_KEY)" --build-arg SSH_PRIVATE_KEY="$(SSH_PRIVATE_KEY)" --cache-from $(IMAGE_JAVA_INLINE_CACHE_NAME) --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg JAVA_VERSION=${JAVA_VERSION} --build-arg MAVEN_VERSION=${MAVEN_VERSION} -t $(IMAGE_JAVA_NAME) .
+	@DOCKER_BUILDKIT=1 docker build --build-arg IMAGE_LABEL=${IMAGE_JAVA} --build-arg SSH_PUBLIC_KEY="$(SSH_PUBLIC_KEY)" --build-arg SSH_PRIVATE_KEY="$(SSH_PRIVATE_KEY)" --cache-from $(IMAGE_JAVA_INLINE_CACHE_NAME) --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg JAVA_VERSION=${JAVA_VERSION} --build-arg MAVEN_VERSION=${MAVEN_VERSION} -t $(IMAGE_JAVA_NAME) .
 
 #run-java: @ Run java dev image
-run-java: check-env build-java
+run-java: check-env
 	@docker run -it --rm $(IMAGE_JAVA_NAME) bash
 
 #push-java: @ Push java dev image to a registry

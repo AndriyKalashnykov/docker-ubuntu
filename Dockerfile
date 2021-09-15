@@ -50,4 +50,4 @@ ENV PATH="$GRADLE_HOME/bin:$MAVEN_HOME/bin:$JAVA_HOME/bin:$PATH"
 WORKDIR /home/$USER_NAME
 
 CMD ["/bin/bash"]
-ENTRYPOINT bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && $0 $@"
+ENTRYPOINT bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && source $HOME/scripts/entry.sh && $0 $@"

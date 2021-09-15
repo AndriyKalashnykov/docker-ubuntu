@@ -21,7 +21,7 @@ LABEL stage=$IMAGE_LABEL
 
 RUN groupadd -g $USER_GID $USER_NAME && useradd -m -g $USER_GID -u $USER_UID --shell /bin/bash $USER_NAME
 
-RUN apt-get install -y apt-transport-https && apt-get -y update && DEBIAN_FRONTEND=noninteractive apt-get install -y sudo ssh locales nano zip unzip rar curl wget tree git gitg git-core \ 
+RUN apt-get install -y apt-transport-https && apt-get -y update && DEBIAN_FRONTEND=noninteractive apt-get install -y sudo ssh locales lsb-core nano zip unzip rar curl wget tree git gitg git-core \ 
     gnupg gnupg2 net-tools ca-certificates jq httpie htop nmon iputils-ping html-xml-utils libxml2-utils xmlstarlet libnss3-tools slirp4netns \
     xdotool buildah podman skopeo \
     && apt-get autoremove && apt-get autoclean \
@@ -32,8 +32,8 @@ RUN apt-get install -y apt-transport-https && apt-get -y update && DEBIAN_FRONTE
 
 RUN echo "$USER_NAME:$USER_PWD" | chpasswd && usermod -aG sudo $USER_NAME && mkdir -p /home/$USER_NAME/.ssh/
 
-COPY scripts/ /
-RUN /install-all.sh
+COPY ./scripts/ /home/$USER_NAME/scripts
+RUN ls -al /home/$USER_NAME/ && /home/$USER_NAME/scripts/install-all.sh
 
 # RUN echo "${SSH_PRIVATE_KEY}" > /home/$USER_NAME/.ssh/id_rsa \
 #     && echo "${SSH_PUBLIC_KEY}" > /home/$USER_NAME/.ssh/id_rsa.pub
@@ -65,5 +65,5 @@ USER $USER_UID:$USER_GID
 WORKDIR /home/$USER_NAME
 
 CMD ["/bin/bash"]
-# lsb_release -a
+ENTRYPOINT bash -c "source $HOME/scripts/entry.sh && $0 $@"
 

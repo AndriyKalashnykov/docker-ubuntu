@@ -14,6 +14,8 @@ ARG SSH_PUBLIC_KEY
 ARG SSH_PRIVATE_KEY
 
 ENV TERM xterm
+ENV TZ=America/New_York
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 LABEL stage=$IMAGE_LABEL
 

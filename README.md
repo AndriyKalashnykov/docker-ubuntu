@@ -1,7 +1,8 @@
-# Ubuntu Dev environment Docker image
 [![main](https://github.com/AndriyKalashnykov/docker-ubuntu/actions/workflows/main.yml/badge.svg)](https://github.com/AndriyKalashnykov/docker-ubuntu/actions/workflows/main.yml)
 [![Ubuntu Base - Docker Pulls](https://img.shields.io/docker/pulls/andriykalashnykov/docker-ubuntu-base.svg)](https://hub.docker.com/r/andriykalashnykov/docker-ubuntu-base/)
 [![Ubuntu JDK - Docker Pulls](https://img.shields.io/docker/pulls/andriykalashnykov/docker-ubuntu-java.svg)](https://hub.docker.com/r/andriykalashnykov/docker-ubuntu-java/)
+[![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FAndriyKalashnykov%2Fdocker-ubuntu&count_bg=%2333CD56&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false)](https://hits.seeyoufarm.com)
+# Ubuntu Dev environment Docker image
 
 ## Help
 

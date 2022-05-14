@@ -1,6 +1,6 @@
 # https://hub.docker.com/_/ubuntu/
 
-ARG UBUNTU_VERSION="21.04"
+ARG UBUNTU_VERSION="21.10"
 
 FROM ubuntu:$UBUNTU_VERSION
 

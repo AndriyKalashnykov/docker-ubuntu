@@ -4,9 +4,9 @@ SHELL := /bin/bash
 SDKMAN := $(HOME)/.sdkman/bin/sdkman-init.sh
 CURRENT_USER_NAME := $(shell whoami)
 
-UBUNTU_VERSION := 21.04
-JAVA_VERSION := 11.0.11.hs-adpt
-MAVEN_VERSION := 3.8.1
+UBUNTU_VERSION := 21.10
+JAVA_VERSION := 18.0.1-tem
+MAVEN_VERSION := 3.8.5
 USER_UID := 1000
 USER_GID := 1000
 USER_NAME := user

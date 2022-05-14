@@ -23,7 +23,7 @@ jobs:
       uses: docker/setup-buildx-action@v1.6.0
       
     - name: Cache Dockerlayers
-      uses: actions/cache@v2.1.6
+      uses: actions/cache@v3.0.2
       with:
         path: /tmp/.buildx-cache
         key: ${{ runner.os }}-buildx-${{ github.sha }}
@@ -35,7 +35,7 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
     - name: Build and push Ubuntu base image
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v3
       with:
         context: ./base/
         file: ./base/Dockerfile
@@ -45,7 +45,7 @@ jobs:
         cache-from: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-base-cache:21.10
         cache-to: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-base-cache:21.10
     - name: Build and push Ubuntu dev image
-      uses: docker/build-push-action@v2
+      uses: docker/build-push-action@v3
       with:
         context: .
         file:  ./Dockerfile

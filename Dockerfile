@@ -5,6 +5,8 @@ ARG UBUNTU_VERSION="21.10"
 FROM andriykalashnykov/docker-ubuntu-base:$UBUNTU_VERSION
 # FROM debian:stretch-slim
 
+ARG JAVA_VERSION
+ARG MAVEN_VERSION
 ARG USER_UID="1000"
 ARG USER_GID="1000"
 ARG USER_NAME="user"
@@ -34,6 +36,7 @@ SHELL ["/bin/bash", "-c"]
 ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache
 # Downloading SDKMAN!
 RUN curl -vsSL "https://get.sdkman.io" | bash
+ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache2
 # Installing Java and Maven, removing some unnecessary SDKMAN files
 RUN bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && \
     yes | sdk install java $JAVA_VERSION && \

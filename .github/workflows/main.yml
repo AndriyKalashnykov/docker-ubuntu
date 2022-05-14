@@ -41,9 +41,9 @@ jobs:
         file: ./base/Dockerfile
         platforms: linux/amd64
         push: true
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-base:21.04
-        cache-from: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-base-cache:21.04
-        cache-to: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-base-cache:21.04
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-base:21.10
+        cache-from: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-base-cache:21.10
+        cache-to: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-base-cache:21.10
     - name: Build and push Ubuntu dev image
       uses: docker/build-push-action@v2
       with:
@@ -51,6 +51,6 @@ jobs:
         file:  ./Dockerfile
         platforms: linux/amd64
         push: true
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-java:21.04
-        cache-from: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-java-cache:21.04
-        cache-to: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-java-cache:21.04
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-java:21.10
+        cache-from: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-java-cache:21.10
+        cache-to: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-java-cache:21.10

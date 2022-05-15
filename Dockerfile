@@ -5,8 +5,11 @@ ARG UBUNTU_VERSION="21.10"
 FROM andriykalashnykov/docker-ubuntu-base:$UBUNTU_VERSION
 # FROM debian:stretch-slim
 
-ARG JAVA_VERSION
-ARG MAVEN_VERSION
+ARG JAVA_VERSION="18.0.1-tem"
+ARG MAVEN_VERSION="3.8.5"
+ARG GOLANG_VERSION="1.18.2"
+
+ARG ROOT_PWD="Docker!"
 ARG USER_UID="1000"
 ARG USER_GID="1000"
 ARG USER_NAME="user"
@@ -29,9 +32,6 @@ LABEL stage=$IMAGE_LABEL
 USER $USER_UID:$USER_GID
 SHELL ["/bin/bash", "-c"]
 
-# RUN apt-get -y update
-# RUN apt-get install -y --no-install-recommends apt-utils ca-certificates openssl curl zip unzip tree apt-transport-https iputils-ping 
-
 # skip caching
 ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache
 # Downloading SDKMAN!
@@ -44,6 +44,12 @@ RUN bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && \
     yes | sdk install gradle && \
     rm -rf $HOME/.sdkman/archives/* && \
     rm -rf $HOME/.sdkman/tmp/*"
+
+ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache3
+RUN git clone https://github.com/udhos/update-golang ~/projects/update-golang/ 
+ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache4
+RUN sudo ~/projects/update-golang/update-golang.sh && source /etc/profile.d/golang_path.sh
+RUN sudo echo 'source /etc/profile.d/golang_path.sh' | sudo tee -a ~/.bashrc
 
 ENV GRADLE_HOME=/home/$USER_NAME/.sdkman/candidates/gradle/current
 ENV MAVEN_HOME="/home/$USER_NAME/.sdkman/candidates/maven/current" 

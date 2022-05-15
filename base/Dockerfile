@@ -4,6 +4,7 @@ ARG UBUNTU_VERSION="21.10"
 
 FROM ubuntu:$UBUNTU_VERSION
 
+ARG ROOT_PWD="Docker!"
 ARG USER_UID="1000"
 ARG USER_GID="1000"
 ARG USER_NAME="user"
@@ -22,8 +23,8 @@ LABEL stage=$IMAGE_LABEL
 
 RUN groupadd -g $USER_GID $USER_NAME && useradd -m -g $USER_GID -u $USER_UID --shell /bin/bash $USER_NAME
 
-RUN apt-get install -y apt-transport-https && apt-get -y update && apt-get install -y sudo ssh locales lsb-core nano zip unzip rar curl wget tree git gitg git-core \ 
-    gnupg gnupg2 net-tools ca-certificates jq httpie htop nmon iputils-ping html-xml-utils libxml2-utils xmlstarlet libnss3-tools slirp4netns \
+RUN apt-get install -y apt-transport-https && apt-get -y update && apt-get install -y sudo ssh locales lsb-core nano zip unzip rar openssl curl wget tree git gitg git-core \ 
+    gnupg gnupg2 net-tools apt-utils ca-certificates jq httpie htop nmon iputils-ping html-xml-utils libxml2-utils xmlstarlet libnss3-tools slirp4netns \
     xdotool buildah podman skopeo \
     && apt-get autoremove && apt-get autoclean \
     && apt-get clean \
@@ -31,7 +32,13 @@ RUN apt-get install -y apt-transport-https && apt-get -y update && apt-get insta
     && rm -rf /tmp/* \
     && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
-RUN echo "$USER_NAME:$USER_PWD" | chpasswd && usermod -aG sudo $USER_NAME && mkdir -p /home/$USER_NAME/.ssh/
+
+# RUN apt-get -y update && \
+#     apt-get -y install golang-${GOLANG_VERSION} && \
+#     apt-get clean
+# RUN echo 'export PATH="/usr/lib/go-${GOLANG_VERSION} /bin:$PATH"' >> /etc/bash.bashrc
+
+RUN echo "$USER_NAME:$USER_PWD" | chpasswd && usermod -aG sudo $USER_NAME && mkdir -p /home/$USER_NAME/.ssh/ && sed -i.bkp -e 's/%sudo\s\+ALL=(ALL\(:ALL\)\?)\s\+ALL/%sudo ALL=NOPASSWD:ALL/g' /etc/sudoers
 
 COPY ./scripts/ /home/$USER_NAME/scripts
 RUN ls -al /home/$USER_NAME/ && /home/$USER_NAME/scripts/install-all.sh
@@ -61,8 +68,9 @@ RUN git config --global user.name $USER_NAME \
     && echo "\nexport TERM=$TERM" >> /home/$USER_NAME/.bashrc \
     && chown -R $USER_UID:$USER_GID  /home/$USER_NAME/
 
-USER $USER_UID:$USER_GID
+RUN echo 'root:${ROOT_PWD}' | chpasswd
 
+USER $USER_UID:$USER_GID
 WORKDIR /home/$USER_NAME
 
 CMD ["/bin/bash"]

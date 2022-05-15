@@ -7,9 +7,13 @@ CURRENT_USER_NAME := $(shell whoami)
 UBUNTU_VERSION := 21.10
 JAVA_VERSION := 18.0.1-tem
 MAVEN_VERSION := 3.8.5
+GOLANG_VERSION := 1.18.1
+
+ROOT_PWD := Docker!
 USER_UID := 1000
 USER_GID := 1000
 USER_NAME := user
+USER_PWD := user
 
 IMAGE := docker-ubuntu-base
 IMAGE_NAME := $$DOCKER_LOGIN/${IMAGE}:${UBUNTU_VERSION}
@@ -71,12 +75,12 @@ SSH_PUBLIC_KEY	:= $(shell cat ~/.ssh/id_rsa.pub)
 
 #build-base-inline-cache: @ Build remote cache for the base image
 build-base-inline-cache: check-env
-	@DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg IMAGE_LABEL=${IMAGE} --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg USER_UID=${USER_UID} --build-arg USER_GID=${USER_GID} --build-arg USER_NAME=${USER_NAME} -t $(IMAGE_INLINE_CACHE_NAME) ./base
+	@DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg IMAGE_LABEL=${IMAGE} --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg USER_UID=${USER_UID} --build-arg USER_GID=${USER_GID} --build-arg USER_NAME=${USER_NAME} --build-arg USER_PWD=${USER_PWD} --build-arg ROOT_PWD=${ROOT_PWD} -t $(IMAGE_INLINE_CACHE_NAME) ./base
 	@DOCKER_BUILDKIT=1 docker push $(IMAGE_INLINE_CACHE_NAME)
 
 #build-base: @ Build base image
 build-base: check-env
-	@DOCKER_BUILDKIT=1 docker build --build-arg IMAGE_LABEL=${IMAGE} --build-arg SSH_PUBLIC_KEY="$(SSH_PUBLIC_KEY)" --build-arg SSH_PRIVATE_KEY="$(SSH_PRIVATE_KEY)" --cache-from $(IMAGE_INLINE_CACHE_NAME) --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg USER_UID=${USER_UID} --build-arg USER_GID=${USER_GID} --build-arg USER_NAME=${USER_NAME} -t $(IMAGE_NAME) ./base
+	@DOCKER_BUILDKIT=1 docker build --build-arg IMAGE_LABEL=${IMAGE} --build-arg SSH_PUBLIC_KEY="$(SSH_PUBLIC_KEY)" --build-arg SSH_PRIVATE_KEY="$(SSH_PRIVATE_KEY)" --cache-from $(IMAGE_INLINE_CACHE_NAME) --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg USER_UID=${USER_UID} --build-arg USER_GID=${USER_GID} --build-arg USER_NAME=${USER_NAME} --build-arg USER_PWD=${USER_PWD} --build-arg ROOT_PWD=${ROOT_PWD} -t $(IMAGE_NAME) ./base
 
 #run-base: @ Run base image
 run-base: check-env
@@ -118,12 +122,12 @@ endif
 
 #build-java-inline-cache: @ Build remote cache for the java dev image
 build-java-inline-cache: check-env build-base
-	@DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg IMAGE_LABEL=${IMAGE_JAVA} --build-arg SSH_PUBLIC_KEY="$(SSH_PUBLIC_KEY)" --build-arg SSH_PRIVATE_KEY="$(SSH_PRIVATE_KEY)" --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg JAVA_VERSION=${JAVA_VERSION} --build-arg MAVEN_VERSION=${MAVEN_VERSION} -t $(IMAGE_JAVA_INLINE_CACHE_NAME) .
+	@DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg IMAGE_LABEL=${IMAGE_JAVA} --build-arg SSH_PUBLIC_KEY="$(SSH_PUBLIC_KEY)" --build-arg SSH_PRIVATE_KEY="$(SSH_PRIVATE_KEY)" --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg JAVA_VERSION=${JAVA_VERSION} --build-arg MAVEN_VERSION=${MAVEN_VERSION} --build-arg GOLANG_VERSION=${GOLANG_VERSION} -t $(IMAGE_JAVA_INLINE_CACHE_NAME) .
 	@DOCKER_BUILDKIT=1 docker push $(IMAGE_JAVA_INLINE_CACHE_NAME)
 
 #build-java: @ Build java dev image
 build-java: check-env build-base
-	@DOCKER_BUILDKIT=1 docker build --build-arg IMAGE_LABEL=${IMAGE_JAVA} --build-arg SSH_PUBLIC_KEY="$(SSH_PUBLIC_KEY)" --build-arg SSH_PRIVATE_KEY="$(SSH_PRIVATE_KEY)" --cache-from $(IMAGE_JAVA_INLINE_CACHE_NAME) --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg JAVA_VERSION=${JAVA_VERSION} --build-arg MAVEN_VERSION=${MAVEN_VERSION} -t $(IMAGE_JAVA_NAME) .
+	@DOCKER_BUILDKIT=1 docker build --build-arg IMAGE_LABEL=${IMAGE_JAVA} --build-arg SSH_PUBLIC_KEY="$(SSH_PUBLIC_KEY)" --build-arg SSH_PRIVATE_KEY="$(SSH_PRIVATE_KEY)" --cache-from $(IMAGE_JAVA_INLINE_CACHE_NAME) --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg JAVA_VERSION=${JAVA_VERSION} --build-arg MAVEN_VERSION=${MAVEN_VERSION} --build-arg GOLANG_VERSION=${GOLANG_VERSION} -t $(IMAGE_JAVA_NAME) .
 
 #run-java: @ Run java dev image
 run-java: check-env

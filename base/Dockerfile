@@ -23,9 +23,9 @@ LABEL stage=$IMAGE_LABEL
 
 RUN groupadd -g $USER_GID $USER_NAME && useradd -m -g $USER_GID -u $USER_UID --shell /bin/bash $USER_NAME
 
-RUN apt-get install -y apt-transport-https && apt-get -y update && apt-get install -y sudo ssh locales lsb-core nano zip unzip rar openssl curl wget tree git gitg git-core \ 
+RUN apt-get install -y apt-transport-https && apt-get -y update && apt-get install -y sudo ssh locales lsb-core nano zip unzip rar openssl openssh-client curl wget tree git gitg git-core \ 
     gnupg gnupg2 net-tools apt-utils ca-certificates jq httpie htop nmon iputils-ping html-xml-utils libxml2-utils xmlstarlet libnss3-tools slirp4netns \
-    xdotool buildah podman skopeo \
+    xdotool buildah podman skopeo postgresql-client make gcc lsb-release python3-dev python3-pip python3-crcmod\
     && apt-get autoremove && apt-get autoclean \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
@@ -42,6 +42,7 @@ RUN echo "$USER_NAME:$USER_PWD" | chpasswd && usermod -aG sudo $USER_NAME && mkd
 
 COPY ./scripts/ /home/$USER_NAME/scripts
 RUN ls -al /home/$USER_NAME/ && /home/$USER_NAME/scripts/install-all.sh
+
 
 # RUN echo "${SSH_PRIVATE_KEY}" > /home/$USER_NAME/.ssh/id_rsa \
 #     && echo "${SSH_PUBLIC_KEY}" > /home/$USER_NAME/.ssh/id_rsa.pub

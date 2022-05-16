@@ -51,6 +51,16 @@ ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache4
 RUN sudo ~/projects/update-golang/update-golang.sh && source /etc/profile.d/golang_path.sh
 RUN sudo echo 'source /etc/profile.d/golang_path.sh' | sudo tee -a ~/.bashrc
 
+COPY ./scripts/ /home/$USER_NAME/scripts
+RUN ls -al /home/$USER_NAME/ && /home/$USER_NAME/scripts/install-all.sh
+
+# Google Cloud SDL CLI - https://github.com/GoogleCloudPlatform/cloud-sdk-docker
+RUN curl https://sdk.cloud.google.com | bash
+
+# Cloud SQL Proxy - https://www.how2shout.com/linux/install-google-cloud-sql-proxy-on-ubuntu-22-04-20-04/
+ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache5
+RUN wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy && chmod +x cloud_sql_proxy && sudo mv cloud_sql_proxy /usr/local/bin/
+
 ENV GRADLE_HOME=/home/$USER_NAME/.sdkman/candidates/gradle/current
 ENV MAVEN_HOME="/home/$USER_NAME/.sdkman/candidates/maven/current" 
 ENV JAVA_HOME="/home/$USER_NAME/.sdkman/candidates/java/current" 

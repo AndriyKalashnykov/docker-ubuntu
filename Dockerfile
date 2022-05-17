@@ -21,16 +21,14 @@ ARG SSH_PRIVATE_KEY
 
 LABEL stage=$IMAGE_LABEL
 
+USER $USER_UID:$USER_GID
+SHELL ["/bin/bash", "-c"]
+
 # RUN echo "${SSH_PRIVATE_KEY}" > /home/$USER_NAME/.ssh/id_rsa \
 #     && echo "${SSH_PUBLIC_KEY}" > /home/$USER_NAME/.ssh/id_rsa.pub \
 #     && eval "$(ssh-agent)" \
 #     && ssh-agent -s \
 #     && ssh-add /home/$USER_NAME/.ssh/id_rsa
-
-
-# Switching to non-root user to install SDKMAN!
-USER $USER_UID:$USER_GID
-SHELL ["/bin/bash", "-c"]
 
 # skip caching
 ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache

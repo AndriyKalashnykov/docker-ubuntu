@@ -37,13 +37,17 @@ RUN echo "$USER_NAME:$USER_PWD" | chpasswd && usermod -aG sudo $USER_NAME && mkd
 COPY ./profile/ /home/$USER_NAME/
 COPY ./scripts/ /home/$USER_NAME/scripts
 
+
+ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache0
+RUN /home/$USER_NAME/scripts/generate-keys.sh ${SSH_PUBLIC_KEY} ${SSH_PRIVATE_KEY} ${USER_NAME} ${USER_EMAIL}
+
 # RUN echo "${SSH_PRIVATE_KEY}" > /home/$USER_NAME/.ssh/id_rsa \
 #     && echo "${SSH_PUBLIC_KEY}" > /home/$USER_NAME/.ssh/id_rsa.pub
 
-RUN ssh-keygen -t rsa -b 4096 -N '' -C $USER_EMAIL -f /home/$USER_NAME/.ssh/id_rsa
+# RUN ssh-keygen -t rsa -b 4096 -N '' -C $USER_EMAIL -f /home/$USER_NAME/.ssh/id_rsa
 
 RUN git lfs install \
-    &&  git config --global user.name $USER_NAME \
+    && git config --global user.name $USER_NAME \
     && git config --global user.email $USER_EMAIL \
     && cat /home/$USER_NAME/.ssh/id_rsa.pub >> /home/$USER_NAME/.ssh/authorized_keys \
     && chmod 755 /home/$USER_NAME/.ssh \
@@ -51,17 +55,16 @@ RUN git lfs install \
     && chmod 600 /home/$USER_NAME/.ssh/id_rsa \
     && chmod 644 /home/$USER_NAME/.ssh/id_rsa.pub \
     && ssh-keyscan -H github.com > /home/$USER_NAME/.ssh/known_hosts \
-    && echo "IdentityFile /home/$USER_NAME/.ssh/id_rsa" >> /home/$USER_NAME/.ssh/config \
-    && echo "StrictHostKeyChecking no" >> /home/$USER_NAME/.ssh/config \
-    && echo "Host github.com\n\tStrictHostKeyChecking no\n" >> /home/$USER_NAME/.ssh/config \
+    && echo "Host github.com\n\tStrictHostKeyChecking no" >> /home/$USER_NAME/.ssh/config \
+    && echo "\tIdentityFile /home/$USER_NAME/.ssh/id_rsa" >> /home/$USER_NAME/.ssh/config \
+    && echo "\tUpdateHostKeys yes" >> /home/$USER_NAME/.ssh/config \
     && chmod 644 /home/$USER_NAME/.ssh/config \
     && chmod 644 /home/$USER_NAME/.ssh/known_hosts \
     && chown -R $USER_UID:$USER_GID  /home/$USER_NAME/.ssh/ \
     && eval "$(ssh-agent)" \
     && ssh-agent -s \
     && ssh-add /home/$USER_NAME/.ssh/id_rsa \
-    && echo "\nexport TERM=$TERM" >> /home/$USER_NAME/.bashrc \
-    && chown -R $USER_UID:$USER_GID  /home/$USER_NAME/
+    && echo "\nexport TERM=$TERM" >> /home/$USER_NAME/.bashrc
 
 RUN sudo chown -R $USER_UID:$USER_GID /home/$USER_NAME/
 
@@ -69,7 +72,7 @@ USER $USER_UID:$USER_GID
 WORKDIR /home/$USER_NAME
 SHELL ["/bin/bash", "-c"]
 
-ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache
+ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache1
 RUN /home/$USER_NAME/scripts/install-all.sh ${GOLANG_VERSION}
 
 CMD ["/bin/bash"]

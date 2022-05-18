@@ -5,15 +5,14 @@
 LAUNCH_DIR=$(pwd); SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; cd $SCRIPT_DIR; cd ..; SCRIPT_PARENT_DIR=$(pwd);
 . $SCRIPT_DIR/set-env.sh
 
-GOLANG_VERSION=${1:-1.18.2}
+PROJECT=helm
 
-cd $SCRIPT_DIR
+sudo -v
 
-echo "Install all ..."
+# https://www.howtoforge.com/ubuntu-kubernetes-helm-packages-manager/
 
-./install-git.sh
-./install-vivid.sh
-./install-go-toolchain.sh $GOLANG_VERSION
-./install-kubectl-toolchain.sh
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 |  bash
+
+${PROJECT} version
 
 cd $LAUNCH_DIR

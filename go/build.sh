@@ -1,3 +1,3 @@
 #!/bin/bash
 
-DOCKER_BUILDKIT=1 docker build -t sample .
+DOCKER_BUILDKIT=1 docker build -t go-dev .

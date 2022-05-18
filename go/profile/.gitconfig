@@ -1,0 +1,43 @@
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+[user]
+	name = Andriy Kalashnykov
+	email = AndriyKalashnykov@gmail.com
+	signingkey = D1FAA03AF6F5F048
+[alias]
+# https://git.wiki.kernel.org/index.php/Aliases
+	c = "!git add -A && git commit -s -m \"$@\""
+	p = !git push origin $(git rev-parse --abbrev-ref HEAD)
+	# commit ant push
+	cmp = "!f() { git add -A && git commit -s -m \"$@\" && git push; }; f"
+	changes=diff --name-status -r
+	diffstat=diff --stat -r
+	sortdiff = !sh -c 'git diff "$@" | grep "^[+-]" | sort --key=1.2 | uniq -u -s1'
+	llog = log --date=local
+	lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
+	new = !sh -c 'git log $1@{1}..$1@{0} "$@"'
+	whatis = show -s --pretty='tformat:%h (%s, %ad)' --date=short
+	graphviz = "!f() { echo 'digraph git {' ; git log --pretty='format:  %h -> { %p }' \"$@\" | sed 's/[0-9a-f][0-9a-f]*/\"&\"/g' ; echo '}'; }; f"
+	gitkconflict = !gitk --left-right HEAD...MERGE_HEAD
+	undo=reset --soft HEAD^
+	prune-all = !git remote | xargs -n 1 git remote prune
+	example = !sh -c 'ls $2 $1' -
+[core]
+	excludesfile = ~/.gitignore_global
+	autocrlf = input
+	editor = code --wait
+[commit]
+	template = ~/.gitignore_global/.stCommitMsg
+	gpgsign = true
+[pull]
+	rebase = false
+
+[gpg]
+	program = gpg
+
+# [url "git@github.com:"]
+# 	insteadOf = https://github.com/
+

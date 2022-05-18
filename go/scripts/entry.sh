@@ -7,6 +7,8 @@ LAUNCH_DIR=$(pwd); SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; c
 
 cd $SCRIPT_DIR
 
+echo "DISPLAY: $DISPLAY" 
+
 lsb_release -a
 
 cd $LAUNCH_DIR

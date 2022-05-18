@@ -5,15 +5,8 @@
 LAUNCH_DIR=$(pwd); SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; cd $SCRIPT_DIR; cd ..; SCRIPT_PARENT_DIR=$(pwd);
 . $SCRIPT_DIR/set-env.sh
 
-GOLANG_VERSION=${1:-1.18.2}
+sudo -v
 
-cd $SCRIPT_DIR
-
-echo "Install all ..."
-
-./install-git.sh
-./install-vivid.sh
-./install-go-toolchain.sh $GOLANG_VERSION
-./install-kubectl-toolchain.sh
+curl -s https://fluxcd.io/install.sh | sudo bash
 
 cd $LAUNCH_DIR

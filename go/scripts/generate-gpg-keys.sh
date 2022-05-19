@@ -39,12 +39,12 @@ if [[ -n "${GPG_SECRET}" && -n "${GPG_PwD}" && -n "${GPG_OWNER_TRUST}" ]]; then
     gpg --list-secret-keys --keyid-format=long
     gpg --export-ownertrust
 
+    # export GPG_OPTS='--pinentry-mode loopback'
+    # GPG_TTY=$(tty || echo "")
     # export GPG_TTY=$(tty)
-    # export GPG_TTY=$(tty) && echo "test" | gpg --clearsign
-    GPG_TTY=$(tty || echo "")
-    if [[ -z "${GPG_TTY}" ]]; then unset GPG_TTY; fi
-    echo "gpg tty '${GPG_TTY}'"
-    echo "test" | gpg --clearsign
+    # if [[ -z "${GPG_TTY}" ]]; then unset GPG_TTY; fi
+    # echo "gpg tty '${GPG_TTY}'"
+    # echo "test" | gpg --clearsign
     # gpg --status-fd=2 -bsau D1FAA03AF6F5F048
 
     # Congigure git to use GPG: ~/.gitconfig

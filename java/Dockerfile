@@ -24,11 +24,25 @@ LABEL stage=$IMAGE_LABEL
 USER $USER_UID:$USER_GID
 SHELL ["/bin/bash", "-c"]
 
-# RUN echo "${SSH_PRIVATE_KEY}" > /home/$USER_NAME/.ssh/id_rsa \
-#     && echo "${SSH_PUBLIC_KEY}" > /home/$USER_NAME/.ssh/id_rsa.pub \
-#     && eval "$(ssh-agent)" \
-#     && ssh-agent -s \
-#     && ssh-add /home/$USER_NAME/.ssh/id_rsa
+RUN git config --global user.name $USER_NAME \
+    && git config --global user.email $USER_EMAIL \
+    && cat /home/$USER_NAME/.ssh/id_rsa.pub >> /home/$USER_NAME/.ssh/authorized_keys \
+    && chmod 755 /home/$USER_NAME/.ssh \
+    && chmod 600 /home/$USER_NAME/.ssh/authorized_keys \
+    && chmod 600 /home/$USER_NAME/.ssh/id_rsa \
+    && chmod 644 /home/$USER_NAME/.ssh/id_rsa.pub \
+    && ssh-keyscan -H github.com > /home/$USER_NAME/.ssh/known_hosts \
+    && echo "IdentityFile /home/$USER_NAME/.ssh/id_rsa" >> /home/$USER_NAME/.ssh/config \
+    && echo "StrictHostKeyChecking no" >> /home/$USER_NAME/.ssh/config \
+    && echo "Host github.com\n\tStrictHostKeyChecking no\n" >> /home/$USER_NAME/.ssh/config \
+    && chmod 644 /home/$USER_NAME/.ssh/config \
+    && chmod 644 /home/$USER_NAME/.ssh/known_hosts \
+    && chown -R $USER_UID:$USER_GID  /home/$USER_NAME/.ssh/ \
+    && eval "$(ssh-agent)" \
+    && ssh-agent -s \
+    && ssh-add /home/$USER_NAME/.ssh/id_rsa \
+    && echo "\nexport TERM=$TERM" >> /home/$USER_NAME/.bashrc \
+    && chown -R $USER_UID:$USER_GID  /home/$USER_NAME/
 
 # skip caching
 ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache

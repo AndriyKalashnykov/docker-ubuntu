@@ -11,13 +11,13 @@ curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stabl
 chmod +x ./kubectl
 mv ./kubectl /usr/local/bin/kubectl
 
-./install-buildpacks.sh
-./install-carvel.sh
-./install-hugo.sh
-./install-kustomize.sh
-./install-opa.sh
-./install-s2i.sh
-./install-skaffold.sh
+# ./install-buildpacks.sh
+# ./install-carvel.sh
+# ./install-hugo.sh
+# ./install-kustomize.sh
+# ./install-opa.sh
+# ./install-s2i.sh
+# ./install-skaffold.sh
 ./install-yq.sh
 
 cd $LAUNCH_DIR

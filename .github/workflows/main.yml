@@ -47,8 +47,8 @@ jobs:
     - name: Build and push Ubuntu dev image
       uses: docker/build-push-action@v3
       with:
-        context: .
-        file:  ./Dockerfile
+        context: ./java/
+        file:  ./java/Dockerfile
         platforms: linux/amd64
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-java:21.10

@@ -23,6 +23,9 @@ IMAGE_JAVA := docker-ubuntu-java
 IMAGE_JAVA_NAME := $$DOCKER_LOGIN/${IMAGE_JAVA}:${UBUNTU_VERSION}
 IMAGE_JAVA_INLINE_CACHE_NAME := $$DOCKER_LOGIN/${IMAGE_JAVA}-cache:${UBUNTU_VERSION}
 
+IMAGE_GO := docker-ubuntu-go
+IMAGE_GO_NAME := $$DOCKER_LOGIN/${IMAGE_GO}:${UBUNTU_VERSION}
+
 DOCKER_REGISTRY := docker.io
 export DOCKER_SCAN_SUGGEST=false
 
@@ -70,8 +73,10 @@ check-env:
 login: check-env
 	@docker login --username $$DOCKER_LOGIN --password $$DOCKER_PWD $$DOCKER_REGISTRY
 
-SSH_PRIVATE_KEY := $(shell cat ~/.ssh/id_rsa)
-SSH_PUBLIC_KEY	:= $(shell cat ~/.ssh/id_rsa.pub)
+SSH_PRIVATE_KEY := $(shell cat ~/.ssh/id_rsa | base64 -w 0)
+SSH_PUBLIC_KEY	:= $(shell cat ~/.ssh/id_rsa.pub | base64 -w 0)
+GPG_SECRET		:= $(shell cat ~/projects/dotfiles/gnupg/AndriyKalashnykov-secret-gpg.key | base64 -w 0)
+GPG_OWNER_TRUST	:= $(shell cat ~/projects/dotfiles/gnupg/AndriyKalashnykov-ownertrust-gpg.txt | base64 -w 0)
 
 #build-base-inline-cache: @ Build remote cache for the base image
 build-base-inline-cache: check-env
@@ -122,12 +127,12 @@ endif
 
 #build-java-inline-cache: @ Build remote cache for the java dev image
 build-java-inline-cache: check-env build-base
-	@DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg IMAGE_LABEL=${IMAGE_JAVA} --build-arg SSH_PUBLIC_KEY="$(SSH_PUBLIC_KEY)" --build-arg SSH_PRIVATE_KEY="$(SSH_PRIVATE_KEY)" --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg JAVA_VERSION=${JAVA_VERSION} --build-arg MAVEN_VERSION=${MAVEN_VERSION} --build-arg GOLANG_VERSION=${GOLANG_VERSION} -t $(IMAGE_JAVA_INLINE_CACHE_NAME) .
+	@DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg IMAGE_LABEL=${IMAGE_JAVA} --build-arg SSH_PUBLIC_KEY="$(SSH_PUBLIC_KEY)" --build-arg SSH_PRIVATE_KEY="$(SSH_PRIVATE_KEY)" --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg JAVA_VERSION=${JAVA_VERSION} --build-arg MAVEN_VERSION=${MAVEN_VERSION} --build-arg GOLANG_VERSION=${GOLANG_VERSION} -t $(IMAGE_JAVA_INLINE_CACHE_NAME) ./java
 	@DOCKER_BUILDKIT=1 docker push $(IMAGE_JAVA_INLINE_CACHE_NAME)
 
 #build-java: @ Build java dev image
 build-java: check-env build-base
-	@DOCKER_BUILDKIT=1 docker build --build-arg IMAGE_LABEL=${IMAGE_JAVA} --build-arg SSH_PUBLIC_KEY="$(SSH_PUBLIC_KEY)" --build-arg SSH_PRIVATE_KEY="$(SSH_PRIVATE_KEY)" --cache-from $(IMAGE_JAVA_INLINE_CACHE_NAME) --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg JAVA_VERSION=${JAVA_VERSION} --build-arg MAVEN_VERSION=${MAVEN_VERSION} --build-arg GOLANG_VERSION=${GOLANG_VERSION} -t $(IMAGE_JAVA_NAME) .
+	@DOCKER_BUILDKIT=1 docker build --build-arg IMAGE_LABEL=${IMAGE_JAVA} --build-arg SSH_PUBLIC_KEY="$(SSH_PUBLIC_KEY)" --build-arg SSH_PRIVATE_KEY="$(SSH_PRIVATE_KEY)" --cache-from $(IMAGE_JAVA_INLINE_CACHE_NAME) --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg JAVA_VERSION=${JAVA_VERSION} --build-arg MAVEN_VERSION=${MAVEN_VERSION} --build-arg GOLANG_VERSION=${GOLANG_VERSION} -t $(IMAGE_JAVA_NAME) ./java
 
 #run-java: @ Run java dev image
 run-java: check-env
@@ -178,14 +183,28 @@ CNT_NETWORK     := $(shell $(CNT_NETWORK_CMD) | wc -l)
 CNT_DANGLING_CMD := docker volume ls -qf dangling=true
 CNT_DANGLING     := $(shell $(CNT_DANGLING_CMD) | wc -l)
 
+
+#build-go: @ Build go dev image
+build-go: check-env build-base
+	@DOCKER_BUILDKIT=1 docker build --build-arg IMAGE_LABEL=${IMAGE_GO} --build-arg USER_EMAIL="AndriyKalashnykov@gmail.com" --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg GOLANG_VERSION=${GOLANG_VERSION}  --build-arg GITHUB_PAT=${GITHUB_PAT} --build-arg SSH_PUBLIC_KEY=$(SSH_PUBLIC_KEY) --build-arg SSH_PRIVATE_KEY=$(SSH_PRIVATE_KEY) --build-arg GPG_SECRET=$(GPG_SECRET) --build-arg GPG_OWNER_TRUST=$(GPG_OWNER_TRUST) --build-arg GPG_PWD=${MY_GPG_PASSWORD} -t $(IMAGE_GO_NAME) ./go
+
+#run-go: @ Run go dev image
+run-go: check-env
+	@sudo chmod 666 /var/run/docker.sock
+	@docker run -v /var/run/docker.sock:/var/run/docker.sock -it --rm $(IMAGE_GO_NAME) bash
+
+#push-go: @ Push java dev image to a registry
+push-go: login build-go
+	@docker push $(IMAGE_GO_NAME)
+
 #build-all: @ Build all and images
-build-all: check-env build-base build-java
+build-all: check-env build-base build-go build-java
 
 #build-push-all: @ Build and push all cache and images
-build-push-all: check-env build-base-inline-cache build-base push-base build-java-inline-cache build-java push-java
+build-push-all: check-env build-base-inline-cache build-base push-base build-go push-go build-java-inline-cache build-java push-java
 
 #cleanup: @ Cleanup docker images, containers, volumes, networks, build cache
-cleanup: delete-java delete-base
+cleanup: delete-go delete-java delete-base
 
 ifeq ($(shell test $(CNT_TAG) -gt 0; echo $$?),0)
 # remove tagged <none> 	

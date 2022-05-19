@@ -23,9 +23,11 @@ if [[ -z "${SSH_PUBLIC_KEY}" || -z "${SSH_PRIVATE_KEY}" ]]; then
       ssh-keygen -q -t rsa -b 4096 -N '' -C $USER_EMAIL -f /home/$USER_NAME/.ssh/id_rsa
 else
       echo "Using provided SSH keys..."
+
       mkdir -p /home/$USER_NAME/.ssh
-      echo "${SSH_PRIVATE_KEY}" > /home/$USER_NAME/.ssh/id_rsa
-      echo "${SSH_PUBLIC_KEY}" > /home/$USER_NAME/.ssh/id_rsa.pub
+      
+      echo "${SSH_PRIVATE_KEY}" | base64 --decode > /home/$USER_NAME/.ssh/id_rsa
+      echo "${SSH_PUBLIC_KEY}" | base64 --decode > /home/$USER_NAME/.ssh/id_rsa.pub
 fi
 
 # # ssh -vT git@github.com

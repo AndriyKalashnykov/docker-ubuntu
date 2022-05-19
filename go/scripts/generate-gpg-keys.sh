@@ -5,17 +5,17 @@
 LAUNCH_DIR=$(pwd); SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; cd $SCRIPT_DIR; cd ..; SCRIPT_PARENT_DIR=$(pwd);
 . $SCRIPT_DIR/set-env.sh
 
-# USER_NAME=${1:-user}
-# GPG_SECRET=${2:-}
-# GPG_OWNER_TRUST=${3:-}
-# GPG_PwD=${4:-}
+USER_NAME=${1:-user}
+GPG_SECRET=${2:-}
+GPG_OWNER_TRUST=${3:-}
+GPG_PwD=${4:-}
 
 cd $SCRIPT_DIR
 
-echo "USER_NAME: ${USER_NAME}"
-echo "GPG_SECRET: ${GPG_SECRET}"
-echo "GPG_OWNER_TRUST: ${GPG_OWNER_TRUST}"
-echo "GPG_PwD: ${GPG_PwD}"
+# echo "USER_NAME: ${USER_NAME}"
+# echo "GPG_SECRET: ${GPG_SECRET}"
+# echo "GPG_OWNER_TRUST: ${GPG_OWNER_TRUST}"
+# echo "GPG_PwD: ${GPG_PwD}"
 
 # https://www.cyberciti.biz/faq/unix-linux-bash-script-check-if-variable-is-empty/
 if [[ -n "${GPG_SECRET}" && -n "${GPG_PwD}" && -n "${GPG_OWNER_TRUST}" ]]; then

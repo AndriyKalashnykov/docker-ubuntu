@@ -94,5 +94,13 @@ RUN /home/$USER_NAME/scripts/install-all.sh ${GOLANG_VERSION}
 ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache2
 RUN /home/$USER_NAME/scripts/generate-gpg-keys.sh $USER_NAME $GPG_SECRET $GPG_OWNER_TRUST $GPG_PWD
 
+# Google Cloud SDL CLI - https://github.com/GoogleCloudPlatform/cloud-sdk-docker
+RUN curl https://sdk.cloud.google.com | sudo bash
+
+# Cloud SQL Proxy - https://www.how2shout.com/linux/install-google-cloud-sql-proxy-on-ubuntu-22-04-20-04/
+ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache3
+RUN wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy && chmod +x cloud_sql_proxy && sudo mv cloud_sql_proxy /usr/local/bin/
+
+
 CMD ["/bin/bash"]
 ENTRYPOINT bash -c "source $HOME/scripts/entry.sh && $0 $@"

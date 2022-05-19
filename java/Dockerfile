@@ -15,7 +15,7 @@ ARG USER_GID="1000"
 ARG USER_NAME="user"
 ARG USER_PWD="user"
 ARG USER_EMAIL="user@test.com"
-ARG IMAGE_LABEL="docker-ubuntu-dev"
+ARG IMAGE_LABEL="ubuntu-dev-java"
 ARG SSH_PUBLIC_KEY
 ARG SSH_PRIVATE_KEY
 
@@ -23,6 +23,9 @@ LABEL stage=$IMAGE_LABEL
 
 USER $USER_UID:$USER_GID
 SHELL ["/bin/bash", "-c"]
+WORKDIR /home/$USER_NAME
+
+COPY ./scripts/ /home/$USER_NAME/scripts
 
 RUN git config --global user.name $USER_NAME \
     && git config --global user.email $USER_EMAIL \
@@ -32,17 +35,18 @@ RUN git config --global user.name $USER_NAME \
     && chmod 600 /home/$USER_NAME/.ssh/id_rsa \
     && chmod 644 /home/$USER_NAME/.ssh/id_rsa.pub \
     && ssh-keyscan -H github.com > /home/$USER_NAME/.ssh/known_hosts \
-    && echo "IdentityFile /home/$USER_NAME/.ssh/id_rsa" >> /home/$USER_NAME/.ssh/config \
-    && echo "StrictHostKeyChecking no" >> /home/$USER_NAME/.ssh/config \
-    && echo "Host github.com\n\tStrictHostKeyChecking no\n" >> /home/$USER_NAME/.ssh/config \
+    && echo -e "Host github.com\n\tStrictHostKeyChecking no" >> /home/$USER_NAME/.ssh/config \
+    && echo -e "\tIdentityFile /home/$USER_NAME/.ssh/id_rsa" >> /home/$USER_NAME/.ssh/config \
+    && echo -e "\tUpdateHostKeys yes" >> /home/$USER_NAME/.ssh/config \
     && chmod 644 /home/$USER_NAME/.ssh/config \
     && chmod 644 /home/$USER_NAME/.ssh/known_hosts \
     && chown -R $USER_UID:$USER_GID  /home/$USER_NAME/.ssh/ \
     && eval "$(ssh-agent)" \
     && ssh-agent -s \
     && ssh-add /home/$USER_NAME/.ssh/id_rsa \
-    && echo "\nexport TERM=$TERM" >> /home/$USER_NAME/.bashrc \
-    && chown -R $USER_UID:$USER_GID  /home/$USER_NAME/
+    && echo -e "\nexport TERM=$TERM" >> /home/$USER_NAME/.bashrc
+
+RUN sudo chown -R $USER_UID:$USER_GID /home/$USER_NAME/
 
 # skip caching
 ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache
@@ -57,28 +61,19 @@ RUN bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && \
     rm -rf $HOME/.sdkman/archives/* && \
     rm -rf $HOME/.sdkman/tmp/*"
 
-ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache3
-RUN git clone https://github.com/udhos/update-golang ~/projects/update-golang/ 
-ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache4
-RUN sudo ~/projects/update-golang/update-golang.sh && source /etc/profile.d/golang_path.sh
-RUN sudo echo 'source /etc/profile.d/golang_path.sh' | sudo tee -a ~/.bashrc
-
-COPY ./scripts/ /home/$USER_NAME/scripts
-RUN ls -al /home/$USER_NAME/ && /home/$USER_NAME/scripts/install-all.sh
+RUN /home/$USER_NAME/scripts/install-all.sh
 
 # Google Cloud SDL CLI - https://github.com/GoogleCloudPlatform/cloud-sdk-docker
-RUN curl https://sdk.cloud.google.com | bash
+RUN curl https://sdk.cloud.google.com | sudo bash
 
 # Cloud SQL Proxy - https://www.how2shout.com/linux/install-google-cloud-sql-proxy-on-ubuntu-22-04-20-04/
-ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache5
+ADD "https://www.random.org/cgi-bin/randbyte?nbytes=10&format=h" skipcache3
 RUN wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy && chmod +x cloud_sql_proxy && sudo mv cloud_sql_proxy /usr/local/bin/
 
 ENV GRADLE_HOME=/home/$USER_NAME/.sdkman/candidates/gradle/current
 ENV MAVEN_HOME="/home/$USER_NAME/.sdkman/candidates/maven/current" 
 ENV JAVA_HOME="/home/$USER_NAME/.sdkman/candidates/java/current" 
 ENV PATH="$GRADLE_HOME/bin:$MAVEN_HOME/bin:$JAVA_HOME/bin:$PATH"
-
-WORKDIR /home/$USER_NAME
 
 CMD ["/bin/bash"]
 ENTRYPOINT bash -c "source $HOME/.sdkman/bin/sdkman-init.sh && source $HOME/scripts/entry.sh && $0 $@"

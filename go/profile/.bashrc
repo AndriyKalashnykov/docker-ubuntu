@@ -4,6 +4,8 @@
 
 # set -x
 
+export GPG_TTY=$(tty)
+
 source /etc/os-release
 
 # If not running interactively, don't do anything
@@ -124,7 +126,7 @@ SSHAGENT=`which ssh-agent`
 SSHAGENTARGS="-s"
 if [ -z "$SSH_AUTH_SOCK" -a -x "$SSHAGENT" ]; then
     eval `$SSHAGENT $SSHAGENTARGS`
-    trap "kill $SSH_AGENT_PID" 0
+    # trap "kill $SSH_AGENT_PID" 0
 fi
 ## in .logout
 if [ "${SSH_AGENT_PID+1}" == 1 ]; then
@@ -148,15 +150,6 @@ source <(kubectl completion bash)
 complete -F __start_kubectl k
 
 export GID=$(id -g)
-
-# export GITHUB_PAT=
-# echo $GITHUB_PAT | docker login ghcr.io -u andriykalashnykov --password-stdin
-
-export DOCKER_LOGIN= # DOCKERHUB_USERNAME
-export DOCKER_PWD_ACCT=
-export DOCKER_PWD= #DOCKERHUB_TOKEN
-export DOCKER_REGISTRY=registry-1.docker.io
-
 
 # export KUBECONFIG=~/.kube/config:$HOME/projects/k8s-mac/kubeconfig-akalashnykov-cluster.yml
 
@@ -196,11 +189,13 @@ export LS_COLORS="$(vivid generate snazzy)"
 # git config --global user.signingkey D1FAA03AF6F5F048
 # git config --global commit.gpgsign true
 
-export GPG_TTY=$(tty)
 # debug GPG
 # gpg --version
 # echo "test" | gpg --clearsign
 # gpg --status-fd=2 -bsau D1FAA03AF6F5F048
 
-
-
+# echo $GITHUB_PAT | docker login ghcr.io -u andriykalashnykov --password-stdin
+# export DOCKER_LOGIN= # DOCKERHUB_USERNAME
+# export DOCKER_PWD_ACCT=
+# export DOCKER_PWD= #DOCKERHUB_TOKEN
+# export DOCKER_REGISTRY=registry-1.docker.io

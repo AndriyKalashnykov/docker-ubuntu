@@ -3,10 +3,6 @@
 	smudge = git-lfs smudge -- %f
 	process = git-lfs filter-process
 	required = true
-[user]
-	name = Andriy Kalashnykov
-	email = AndriyKalashnykov@gmail.com
-	signingkey = D1FAA03AF6F5F048
 [alias]
 # https://git.wiki.kernel.org/index.php/Aliases
 	c = "!git add -A && git commit -s -m \"$@\""
@@ -28,9 +24,9 @@
 [core]
 	excludesfile = ~/.gitignore_global
 	autocrlf = input
-	editor = code --wait
+	editor = vim --nofork # nano -w
 [commit]
-	template = ~/.gitignore_global/.stCommitMsg
+	# template = ~/.stCommitMsg
 	gpgsign = true
 [pull]
 	rebase = false
@@ -38,6 +34,10 @@
 [gpg]
 	program = gpg
 
-# [url "git@github.com:"]
-# 	insteadOf = https://github.com/
+[url "git@github.com:"]
+	insteadOf = https://github.com/
 
+[user]
+	name = Andriy Kalashnykov
+	email = AndriyKalashnykov@gmail.com
+	signingkey = D1FAA03AF6F5F048

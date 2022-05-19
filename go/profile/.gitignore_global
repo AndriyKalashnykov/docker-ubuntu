@@ -1,0 +1,37 @@
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# IDEs & editors files #
+########################
+.classpath
+.project
+.settings
+.idea
+.metadata
+*.iml
+*.ipr
+.vscode
+**/*~
+**/*.bak
+**/*.sw[abcdefghijklmnop]
+*.sublime-workspace
+
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini

@@ -16,8 +16,6 @@ sudo echo 'source /etc/profile.d/golang_path.sh' | sudo tee -a ~/.bashrc
 
 source /etc/profile.d/golang_path.sh
 
-
-
 go install golang.org/x/tools/cmd/godoc@latest
 go install golang.org/x/tools/cmd/benchcmp@latest
 go install golang.org/x/tools/cmd/cover@latest

@@ -39,6 +39,7 @@ if [[ -n "${GPG_SECRET}" && -n "${GPG_PwD}" && -n "${GPG_OWNER_TRUST}" ]]; then
     gpg --list-secret-keys --keyid-format=long
     gpg --export-ownertrust
 
+    # stty -echo; echo "${GPG_PwD}" | echo "test" | gpg --passphrase-fd 0 --pinentry-mode loopback --clearsign; stty echo;
     # export GPG_OPTS='--pinentry-mode loopback'
     # GPG_TTY=$(tty || echo "")
     # export GPG_TTY=$(tty)

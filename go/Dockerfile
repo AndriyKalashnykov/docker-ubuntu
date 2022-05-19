@@ -37,6 +37,7 @@ RUN apt-get install -y apt-transport-https \
     && rm -rf /var/cache/apt \
     && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
+# https://devopscube.com/run-docker-in-docker/
 RUN curl -sSL https://get.docker.com/ | sh
 
 RUN echo "$USER_NAME:$USER_PWD" | chpasswd && usermod -aG sudo $USER_NAME && mkdir -p /home/$USER_NAME/.ssh/ && sed -i.bkp -e 's/%sudo\s\+ALL=(ALL\(:ALL\)\?)\s\+ALL/%sudo ALL=NOPASSWD:ALL/g' /etc/sudoers

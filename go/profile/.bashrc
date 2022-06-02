@@ -199,3 +199,6 @@ export LS_COLORS="$(vivid generate snazzy)"
 # export DOCKER_PWD_ACCT=
 # export DOCKER_PWD= #DOCKERHUB_TOKEN
 # export DOCKER_REGISTRY=registry-1.docker.io
+
+# ignore vendor
+export GOFLAGS=-mod=mod

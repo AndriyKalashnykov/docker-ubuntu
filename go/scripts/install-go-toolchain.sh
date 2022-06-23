@@ -24,6 +24,7 @@ go install golang.org/x/tools/cmd/goimports@latest
 go install golang.org/x/tools/cmd/gotype@latest
 go install golang.org/x/tools/cmd/gorename@latest
 go install golang.org/x/tools/cmd/gomvpkg@latest
+go install github.com/pressly/goose/v3/cmd/goose@latest
 
 # https://github.com/jfeliu007/goplantuml
 go install github.com/jfeliu007/goplantuml/cmd/goplantuml@latest

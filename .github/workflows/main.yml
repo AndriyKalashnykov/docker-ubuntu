@@ -44,7 +44,7 @@ jobs:
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-base:21.10
         cache-from: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-base-cache:21.10
         cache-to: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-base-cache:21.10
-    - name: Build and push Ubuntu dev image
+    - name: Build and push Ubuntu Java image
       uses: docker/build-push-action@v3
       with:
         context: ./java/
@@ -54,3 +54,13 @@ jobs:
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-java:21.10
         cache-from: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-java-cache:21.10
         cache-to: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-java-cache:21.10
+    - name: Build and push Ubuntu Go image
+      uses: docker/build-push-action@v3
+      with:
+        context: ./go/
+        file:  ./go/Dockerfile
+        platforms: linux/amd64
+        push: true
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-go:21.10
+        cache-from: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-java-go:21.10
+        cache-to: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-java-go:21.10

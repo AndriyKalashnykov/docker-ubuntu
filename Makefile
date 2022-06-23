@@ -191,7 +191,7 @@ build-go: check-env build-base
 #run-go: @ Run go dev image
 run-go: check-env
 	@sudo chmod 666 /var/run/docker.sock
-	@docker run -v /var/run/docker.sock:/var/run/docker.sock -it --rm $(IMAGE_GO_NAME) bash
+	@docker run -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd)/:/home/user/host_launchdir --name docker-ubuntu-go -it --rm $(IMAGE_GO_NAME) bash
 
 #push-go: @ Push java dev image to a registry
 push-go: login build-go

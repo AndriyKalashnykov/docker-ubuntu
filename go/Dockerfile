@@ -22,6 +22,14 @@ ENV TZ=America/New_York
 
 LABEL stage=$IMAGE_LABEL
 
+RUN sudo apt-get install -y postgresql postgresql-contrib postgresql-client \
+    && sudo apt-get autoremove \
+    && sudo apt-get autoclean \
+    && sudo apt-get clean \
+    && sudo rm -rf /var/lib/apt/lists/* \
+    && sudo rm -rf /tmp/* \
+    && sudo rm -rf /var/cache/apt 
+
 # RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # RUN groupadd -g $USER_GID $USER_NAME && useradd -m -g $USER_GID -u $USER_UID --shell /bin/bash $USER_NAME

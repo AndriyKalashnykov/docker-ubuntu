@@ -62,5 +62,5 @@ jobs:
         platforms: linux/amd64
         push: true
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-go:21.10
-        cache-from: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-java-go:21.10
-        cache-to: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-java-go:21.10
+        cache-from: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-go-cache:21.10
+        cache-to: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-go-cache:21.10

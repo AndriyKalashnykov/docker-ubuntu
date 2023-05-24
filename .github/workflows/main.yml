@@ -63,7 +63,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v4
       with:
-        images: ghcr.io/${{ env.OWNER_LC }}/docker-ubuntu-base:21.10
+        images: ghcr.io/${{ env.OWNER_LC }}/docker-ubuntu-base
         flavor: latest=true
         tags: |
           type=ref,event=branch

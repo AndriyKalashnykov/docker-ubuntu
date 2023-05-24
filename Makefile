@@ -4,7 +4,7 @@ SHELL := /bin/bash
 SDKMAN := $(HOME)/.sdkman/bin/sdkman-init.sh
 CURRENT_USER_NAME := $(shell whoami)
 
-UBUNTU_VERSION := 21.10
+UBUNTU_VERSION := 22.10
 JAVA_VERSION := 18.0.1-tem
 MAVEN_VERSION := 3.8.5
 GOLANG_VERSION := 1.18.2

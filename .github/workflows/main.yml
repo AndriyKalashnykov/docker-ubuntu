@@ -40,7 +40,7 @@ jobs:
       uses: actions/cache@v3.3.1
       with:
         path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        key: ${{ runner.os }}-buildx-${{ ghcr.sha }}
         restore-keys: |
           ${{ runner.os }}-buildx-
 

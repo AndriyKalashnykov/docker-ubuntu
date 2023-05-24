@@ -76,7 +76,7 @@ jobs:
         context: ./base/
         file: ./base/Dockerfile
         platforms: linux/amd64
-        push: fase
+        push: false
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=local,src=/tmp/.buildx-cache

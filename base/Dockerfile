@@ -24,7 +24,7 @@ LABEL stage=$IMAGE_LABEL
 RUN groupadd -g $USER_GID $USER_NAME && useradd -m -g $USER_GID -u $USER_UID --shell /bin/bash $USER_NAME
 
 RUN apt-get install -y apt-transport-https \
-    && apt-get -y update \
+    # && apt-get -y update \
     && apt-get install -y ca-certificates apt-utils software-properties-common curl wget lsb-release lsb-core sudo locales xclip xsel bash-completion \
     vim nano zip unzip rar openssl ssh openssh-client tree git gitg git-core git-lfs graphviz \
     gnupg gnupg2 net-tools jq httpie htop nmon iputils-ping html-xml-utils libxml2-utils xmlstarlet libnss3-tools slirp4netns \

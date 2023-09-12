@@ -71,7 +71,7 @@ jobs:
           type=semver,pattern={{version}}
 
     - name: Build and push Ubuntu base image
-      uses: docker/build-push-action@v4
+      uses: docker/build-push-action@v5
       with:
         context: ./base/
         file: ./base/Dockerfile
@@ -85,7 +85,7 @@ jobs:
         # cache-from: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-base-cache:21.10
         # cache-to: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-base-cache:21.10
     # - name: Build and push Ubuntu Java image
-    #   uses: docker/build-push-action@v4
+    #   uses: docker/build-push-action@v5
     #   with:
     #     context: ./java/
     #     file:  ./java/Dockerfile
@@ -95,7 +95,7 @@ jobs:
     #     cache-from: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-java-cache:21.10
     #     cache-to: ${{ secrets.DOCKERHUB_USERNAME }}/docker-ubuntu-java-cache:21.10
     # - name: Build and push Ubuntu Go image
-    #   uses: docker/build-push-action@v4
+    #   uses: docker/build-push-action@v5
     #   with:
     #     context: ./go/
     #     file:  ./go/Dockerfile

@@ -4,6 +4,7 @@
     "config:best-practices",
     ":semanticCommitType(chore)"
   ],
+  "enabledManagers": ["mise", "github-actions", "custom.regex"],
   "labels": ["dependencies"],
   "commitMessagePrefix": "chore(all): ",
   "commitMessageAction": "update",

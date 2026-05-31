@@ -1,7 +1,7 @@
-# This workflow will build a Java project with Maven
-# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+# Builds, scans, signs and publishes the docker-ubuntu base + java images to GHCR.
+# The go image is built locally only (it needs operator GPG/PAT secrets).
 
-name: main
+name: CI
 
 on:
   push:
@@ -11,74 +11,171 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      images: ${{ steps.filter.outputs.images }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Filter paths
+        id: filter
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4
+        with:
+          base: ${{ github.event_name == 'push' && 'main' || '' }}
+          filters: |
+            images:
+              - 'base/**'
+              - 'java/**'
+              - '.hadolint.yaml'
+              - '.github/workflows/main.yml'
+
+  static-check:
+    needs: changes
+    if: needs.changes.outputs.images == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Lint Dockerfiles (hadolint)
+        uses: hadolint/hadolint-action@2332a7b74a6de0dda2e2221d575162eba76ba5e5 # v3.3.0
+        with:
+          recursive: true
+          config: .hadolint.yaml
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
 
   build:
-
+    needs: [changes, static-check]
+    if: needs.changes.outputs.images == 'true'
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      packages: write
+      id-token: write   # cosign keyless signing
     env:
-      GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
-
+      REGISTRY: ghcr.io
     steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-    - name: Checkout
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      with:
-        fetch-depth: 0
+      - name: Compute owner and version
+        run: |
+          echo "OWNER_LC=${OWNER,,}" >> "$GITHUB_ENV"
+          echo "UBUNTU_VERSION=$(awk -F':= ' '/^UBUNTU_VERSION/{print $2}' Makefile)" >> "$GITHUB_ENV"
+        env:
+          OWNER: ${{ github.repository_owner }}
 
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
+      # Build base then java with plain `docker build` (BuildKit). java's
+      # `FROM ghcr.io/.../docker-ubuntu-base:24.04` resolves the just-built base
+      # from the local image store — no registry pull, so PRs build without auth.
+      - name: Build base + java images
+        run: |
+          BASE="${REGISTRY}/${OWNER_LC}/docker-ubuntu-base"
+          JAVA="${REGISTRY}/${OWNER_LC}/docker-ubuntu-java"
+          DOCKER_BUILDKIT=1 docker build --build-arg UBUNTU_VERSION="${UBUNTU_VERSION}" \
+            --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
+            -t "${BASE}:${UBUNTU_VERSION}" ./base
+          DOCKER_BUILDKIT=1 docker build --build-arg UBUNTU_VERSION="${UBUNTU_VERSION}" \
+            --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
+            -t "${JAVA}:${UBUNTU_VERSION}" ./java
 
-    - name: Cache Docker layers
-      uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
-      with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-
+      - name: Trivy image scan (base)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          # Gate on OS-package CVEs (apt-controlled) + secret scanning. Pinned-latest
+          # third-party CLI tool binaries carry upstream transitive Go-dep CVEs that
+          # aren't fixable at build time, so vuln scanning is scoped to `os`.
+          image-ref: ${{ env.REGISTRY }}/${{ env.OWNER_LC }}/docker-ubuntu-base:${{ env.UBUNTU_VERSION }}
+          vuln-type: os
+          scanners: vuln,secret
+          skip-dirs: '**/google-cloud-sdk/platform/gsutil/third_party'
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
 
-    - name: Convert owner to lower case
-      run: |
-        echo "OWNER_LC=${OWNER,,}" >>${GITHUB_ENV}
-      env:
-        OWNER: '${{ github.repository_owner }}'
+      - name: Trivy image scan (java)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.OWNER_LC }}/docker-ubuntu-java:${{ env.UBUNTU_VERSION }}
+          vuln-type: os
+          scanners: vuln,secret
+          skip-dirs: '**/google-cloud-sdk/platform/gsutil/third_party'
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
 
-    - name: Login to image repository
-      uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push images (tag + latest + sha)
+        if: github.event_name != 'pull_request'
+        run: |
+          BASE="${REGISTRY}/${OWNER_LC}/docker-ubuntu-base"
+          JAVA="${REGISTRY}/${OWNER_LC}/docker-ubuntu-java"
+          SHA="sha-${GITHUB_SHA::7}"
+          for img in "$BASE" "$JAVA"; do
+            docker tag "${img}:${UBUNTU_VERSION}" "${img}:latest"
+            docker tag "${img}:${UBUNTU_VERSION}" "${img}:${SHA}"
+            docker push "${img}:${UBUNTU_VERSION}"
+            docker push "${img}:latest"
+            docker push "${img}:${SHA}"
+          done
+          {
+            echo "BASE_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "${BASE}:${UBUNTU_VERSION}" | cut -d@ -f2)"
+            echo "JAVA_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "${JAVA}:${UBUNTU_VERSION}" | cut -d@ -f2)"
+          } >> "$GITHUB_ENV"
 
-    - name: Docker meta
-      id: meta
-      uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6
-      with:
-        images: ghcr.io/${{ env.OWNER_LC }}/docker-ubuntu-base
-        flavor: latest=true
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=semver,pattern={{version}}
+      - name: Install cosign
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
 
-    - name: Build and push Ubuntu base image
-      uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
-      with:
-        context: ./base/
-        file: ./base/Dockerfile
-        platforms: linux/amd64
-        push: false
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=local,src=/tmp/.buildx-cache
-        cache-to: type=local,dest=/tmp/.buildx-cache
+      - name: Sign base + java by digest (keyless)
+        if: github.event_name != 'pull_request'
+        run: |
+          cosign sign --yes "${REGISTRY}/${OWNER_LC}/docker-ubuntu-base@${BASE_DIGEST}"
+          cosign sign --yes "${REGISTRY}/${OWNER_LC}/docker-ubuntu-java@${JAVA_DIGEST}"
+
+      - name: Generate SBOM (base)
+        if: github.event_name != 'pull_request'
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          image: ${{ env.REGISTRY }}/${{ env.OWNER_LC }}/docker-ubuntu-base:${{ env.UBUNTU_VERSION }}
+          format: spdx-json
+          artifact-name: sbom-base.spdx.json
+
+  ci-pass:
+    # Single required status check for branch protection / rulesets.
+    if: always()
+    needs: [changes, static-check, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required jobs passed
+        run: |
+          results='${{ needs.changes.result }} ${{ needs.static-check.result }} ${{ needs.build.result }}'
+          echo "results: $results"
+          for r in $results; do
+            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
+              echo "A required job did not pass."; exit 1
+            fi
+          done
+          echo "All required jobs passed (or were skipped)."

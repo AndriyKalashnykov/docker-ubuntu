@@ -1,35 +1,23 @@
 #!/bin/bash
-
-# set -x
-
-LAUNCH_DIR=$(pwd); SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; cd $SCRIPT_DIR; cd ..; SCRIPT_PARENT_DIR=$(pwd);
-. $SCRIPT_DIR/set-env.sh
+#
+# Install SSH keys into the user's ~/.ssh. Keys are provided as BuildKit secret
+# mounts (raw files at /run/secrets/ssh_priv and /run/secrets/ssh_pub); if absent,
+# a fresh key pair is generated. No key material is ever passed as a build arg.
 
 USER_NAME=${1:-user}
 USER_EMAIL=${2:-user@test.com}
-SSH_PUBLIC_KEY=${3:-}
-SSH_PRIVATE_KEY=${4:-}
 
-cd $SCRIPT_DIR
+mkdir -p "/home/${USER_NAME}/.ssh"
 
-# echo "USER_NAME: $USER_NAME"
-# echo "USER_EMAIL: $USER_EMAIL"
-# echo "SSH_PUBLIC_KEY: $SSH_PUBLIC_KEY"
-# echo "SSH_PRIVATE_KEY: $SSH_PRIVATE_KEY"
-
-# https://www.cyberciti.biz/faq/unix-linux-bash-script-check-if-variable-is-empty/
-if [[ -z "${SSH_PUBLIC_KEY}" || -z "${SSH_PRIVATE_KEY}" ]]; then
-      echo "Generating SSH keys..."
-      ssh-keygen -q -t rsa -b 4096 -N '' -C $USER_EMAIL -f /home/$USER_NAME/.ssh/id_rsa
+if [ -s /run/secrets/ssh_priv ] && [ -s /run/secrets/ssh_pub ]; then
+    echo "Using provided SSH keys..."
+    cp /run/secrets/ssh_priv "/home/${USER_NAME}/.ssh/id_rsa"
+    cp /run/secrets/ssh_pub  "/home/${USER_NAME}/.ssh/id_rsa.pub"
 else
-      echo "Using provided SSH keys..."
-
-      mkdir -p /home/$USER_NAME/.ssh
-      
-      echo "${SSH_PRIVATE_KEY}" | base64 --decode > /home/$USER_NAME/.ssh/id_rsa
-      echo "${SSH_PUBLIC_KEY}" | base64 --decode > /home/$USER_NAME/.ssh/id_rsa.pub
+    echo "Generating SSH keys..."
+    ssh-keygen -q -t rsa -b 4096 -N '' -C "$USER_EMAIL" -f "/home/${USER_NAME}/.ssh/id_rsa"
 fi
 
-# # ssh -vT git@github.com
-
-cd $LAUNCH_DIR
+chmod 700 "/home/${USER_NAME}/.ssh"
+chmod 600 "/home/${USER_NAME}/.ssh/id_rsa"
+chmod 644 "/home/${USER_NAME}/.ssh/id_rsa.pub"

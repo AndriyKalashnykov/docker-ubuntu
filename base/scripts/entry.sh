@@ -1,12 +1,22 @@
 #!/bin/bash
+#
+# Container entrypoint hook (sourced by the image ENTRYPOINT before the command).
+# Activates mise so every pinned tool is on PATH with its environment set
+# (JAVA_HOME, GOROOT, etc.) for non-interactive and interactive shells alike.
 
-# set -x
+if command -v mise >/dev/null 2>&1; then
+    eval "$(mise activate bash --shims)"
+    # Export each active tool's env (JAVA_HOME, GOROOT, …) so they are set in
+    # non-interactive shells too, not only interactive ones (which get them via
+    # `mise activate` in ~/.bashrc).
+    eval "$(mise env -s bash 2>/dev/null)"
+fi
 
-LAUNCH_DIR=$(pwd); SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; cd $SCRIPT_DIR; cd ..; SCRIPT_PARENT_DIR=$(pwd);
-. $SCRIPT_DIR/set-env.sh
+# Generate a per-container SSH key on first run if none is present/mounted.
+# No key is baked into the image (see base/Dockerfile).
+if [ ! -f "$HOME/.ssh/id_rsa" ]; then
+    mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+    ssh-keygen -q -t rsa -b 4096 -N '' -C "${USER_EMAIL:-user@localhost}" -f "$HOME/.ssh/id_rsa" 2>/dev/null || true
+fi
 
-cd $SCRIPT_DIR
-
-lsb_release -a
-
-cd $LAUNCH_DIR
+lsb_release -a 2>/dev/null || true

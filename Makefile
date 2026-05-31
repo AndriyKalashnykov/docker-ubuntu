@@ -1,13 +1,12 @@
 .DEFAULT_GOAL := help
 
 SHELL := /bin/bash
-SDKMAN := $(HOME)/.sdkman/bin/sdkman-init.sh
-CURRENT_USER_NAME := $(shell whoami)
 
-UBUNTU_VERSION := 22.10
-JAVA_VERSION := 18.0.1-tem
-MAVEN_VERSION := 3.8.5
-GOLANG_VERSION := 1.18.2
+# Base-image tag only. Java/Maven/Go and every other tool version are pinned in
+# the per-image .mise.toml files (base/.mise.toml, java/.mise.toml, go/.mise.toml)
+# and managed by mise + Renovate — NOT here.
+# renovate: datasource=docker depName=ubuntu versioning=ubuntu
+UBUNTU_VERSION := 24.04
 
 ROOT_PWD := Docker!
 USER_UID := 1000
@@ -15,77 +14,99 @@ USER_GID := 1000
 USER_NAME := user
 USER_PWD := user
 
-IMAGE := docker-ubuntu-base
-IMAGE_NAME := $$DOCKER_LOGIN/${IMAGE}:${UBUNTU_VERSION}
-IMAGE_INLINE_CACHE_NAME	:= $$DOCKER_LOGIN/${IMAGE}-cache:${UBUNTU_VERSION}
+# Registry — GitHub Container Registry. Auth uses a GitHub PAT (GITHUB_PAT) with
+# write:packages. REGISTRY_OWNER MUST be lowercase (ghcr requirement).
+# `:=` (not `?=`) so an exported DOCKER_REGISTRY in the shell can't silently
+# redirect publishes; override on the command line with `make DOCKER_REGISTRY=...`.
+DOCKER_REGISTRY := ghcr.io
+REGISTRY_OWNER  := andriykalashnykov
 
+IMAGE      := docker-ubuntu-base
 IMAGE_JAVA := docker-ubuntu-java
-IMAGE_JAVA_NAME := $$DOCKER_LOGIN/${IMAGE_JAVA}:${UBUNTU_VERSION}
-IMAGE_JAVA_INLINE_CACHE_NAME := $$DOCKER_LOGIN/${IMAGE_JAVA}-cache:${UBUNTU_VERSION}
+IMAGE_GO   := docker-ubuntu-go
 
-IMAGE_GO := docker-ubuntu-go
-IMAGE_GO_NAME := $$DOCKER_LOGIN/${IMAGE_GO}:${UBUNTU_VERSION}
+IMAGE_NAME                   := $(DOCKER_REGISTRY)/$(REGISTRY_OWNER)/$(IMAGE):$(UBUNTU_VERSION)
+IMAGE_INLINE_CACHE_NAME      := $(DOCKER_REGISTRY)/$(REGISTRY_OWNER)/$(IMAGE)-cache:$(UBUNTU_VERSION)
+IMAGE_JAVA_NAME              := $(DOCKER_REGISTRY)/$(REGISTRY_OWNER)/$(IMAGE_JAVA):$(UBUNTU_VERSION)
+IMAGE_JAVA_INLINE_CACHE_NAME := $(DOCKER_REGISTRY)/$(REGISTRY_OWNER)/$(IMAGE_JAVA)-cache:$(UBUNTU_VERSION)
+IMAGE_GO_NAME                := $(DOCKER_REGISTRY)/$(REGISTRY_OWNER)/$(IMAGE_GO):$(UBUNTU_VERSION)
 
-DOCKER_REGISTRY := docker.io
-export DOCKER_SCAN_SUGGEST=false
+export DOCKER_BUILDKIT=1
+
+DOTFILES_DIR ?= $(HOME)/projects/dotfiles
+
+# The go image's secrets (GitHub PAT, GPG key material, SSH keys) are passed via
+# BuildKit secret mounts — NEVER build args (which leak via `docker history` and
+# argv). Each is included only when present on the host, so the build works
+# without them: the in-image scripts fall back (generate a fresh SSH key, skip
+# the GPG import). Secret VALUES never touch the command line — env secrets read
+# the inherited env; file secrets are streamed from disk by BuildKit.
+GO_BUILD_SECRETS :=
+ifneq ($(strip $(GITHUB_PAT)),)
+GO_BUILD_SECRETS += --secret id=github_pat,env=GITHUB_PAT
+endif
+ifneq ($(strip $(MY_GPG_PASSWORD)),)
+GO_BUILD_SECRETS += --secret id=gpg_pwd,env=MY_GPG_PASSWORD
+endif
+ifneq ($(wildcard $(DOTFILES_DIR)/gnupg/AndriyKalashnykov-secret-gpg.key),)
+GO_BUILD_SECRETS += --secret id=gpg_secret,src=$(DOTFILES_DIR)/gnupg/AndriyKalashnykov-secret-gpg.key
+endif
+ifneq ($(wildcard $(DOTFILES_DIR)/gnupg/AndriyKalashnykov-ownertrust-gpg.txt),)
+GO_BUILD_SECRETS += --secret id=gpg_ownertrust,src=$(DOTFILES_DIR)/gnupg/AndriyKalashnykov-ownertrust-gpg.txt
+endif
+ifneq ($(wildcard $(HOME)/.ssh/id_rsa),)
+GO_BUILD_SECRETS += --secret id=ssh_priv,src=$(HOME)/.ssh/id_rsa
+endif
+ifneq ($(wildcard $(HOME)/.ssh/id_rsa.pub),)
+GO_BUILD_SECRETS += --secret id=ssh_pub,src=$(HOME)/.ssh/id_rsa.pub
+endif
 
 # make sure docker is installed
-DOCKER_EXISTS	:= @printf "docker"
-DOCKER_WHICH	:= $(shell which docker)
+DOCKER_EXISTS := @printf "docker"
+DOCKER_WHICH  := $(shell which docker)
 ifeq ($(strip $(DOCKER_WHICH)),)
 	DOCKER_EXISTS := @echo "ERROR: docker not found. See: https://docs.docker.com/get-docker/" && exit 1
 endif
 
-DOCKER_LOGIN_EXISTS := @printf "DOCKER_LOGIN"
-ifndef DOCKER_LOGIN
-#	$(error DOCKER_PWD is undefined)
-	DOCKER_LOGIN_EXISTS := @echo "DOCKER_LOGIN is undefined" && exit 1
-endif
-
-DOCKER_PWD_EXISTS := @printf "DOCKER_PWD"
-ifndef DOCKER_PWD
-#	$(error DOCKER_PWD is undefined)
-	DOCKER_PWD_EXISTS := @echo "DOCKER_PWD is undefined" && exit 1
-endif
-
 #help: @ List available tasks on this project
 help:
-	@clear
 	@echo "Usage: make COMMAND"
 	@echo
 	@echo "Commands :"
 	@echo
 	@grep -E '[a-zA-Z\.\-]+:.*?@ .*$$' $(MAKEFILE_LIST)| tr -d '#' | awk 'BEGIN {FS = ":.*?@ "}; {printf "\033[32m%-23s\033[0m - %s\n", $$1, $$2}'
 
-#check-env: @ Check environment variables and installed tools
+#check-env: @ Check that docker is installed
 check-env:
-
 	@printf "\xE2\x9C\x94 "
 	$(DOCKER_EXISTS)
-	@printf " "
-	$(DOCKER_LOGIN_EXISTS)
-	@printf " "
-	$(DOCKER_PWD_EXISTS)
-	@echo ""	
-#	$(debug   DOCKER_EXISTS is $(DOCKER_EXISTS))
+	@echo ""
 
-#login: @ Login to a registry
+#login: @ Log in to GHCR (uses GITHUB_PAT with write:packages)
 login: check-env
-	@docker login --username $$DOCKER_LOGIN --password $$DOCKER_PWD $$DOCKER_REGISTRY
+	@[ -n "$$GITHUB_PAT" ] || { echo "ERROR: GITHUB_PAT (write:packages) is required to log in to $(DOCKER_REGISTRY)"; exit 1; }
+	@printf '%s' "$$GITHUB_PAT" | docker login $(DOCKER_REGISTRY) -u $(REGISTRY_OWNER) --password-stdin
 
-SSH_PRIVATE_KEY := $(shell cat ~/.ssh/id_rsa | base64 -w 0)
-SSH_PUBLIC_KEY	:= $(shell cat ~/.ssh/id_rsa.pub | base64 -w 0)
-GPG_SECRET		:= $(shell cat ~/projects/dotfiles/gnupg/AndriyKalashnykov-secret-gpg.key | base64 -w 0)
-GPG_OWNER_TRUST	:= $(shell cat ~/projects/dotfiles/gnupg/AndriyKalashnykov-ownertrust-gpg.txt | base64 -w 0)
+#lint: @ Lint Dockerfiles with hadolint
+lint:
+	@command -v hadolint >/dev/null 2>&1 || { echo "ERROR: hadolint not found. See: https://github.com/hadolint/hadolint"; exit 1; }
+	@hadolint base/Dockerfile java/Dockerfile go/Dockerfile
+
+#ci: @ Run local CI checks (Dockerfile lint + build the base image)
+ci: lint build-base
+
+#renovate-validate: @ Validate renovate.json against the Renovate schema
+renovate-validate:
+	@npx --yes --package renovate -- renovate-config-validator
 
 #build-base-inline-cache: @ Build remote cache for the base image
 build-base-inline-cache: check-env
-	@DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg IMAGE_LABEL=${IMAGE} --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg USER_UID=${USER_UID} --build-arg USER_GID=${USER_GID} --build-arg USER_NAME=${USER_NAME} --build-arg USER_PWD=${USER_PWD} --build-arg ROOT_PWD=${ROOT_PWD} -t $(IMAGE_INLINE_CACHE_NAME) ./base
-	@DOCKER_BUILDKIT=1 docker push $(IMAGE_INLINE_CACHE_NAME)
+	@docker build --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg IMAGE_LABEL=$(IMAGE) --build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) --build-arg USER_UID=$(USER_UID) --build-arg USER_GID=$(USER_GID) --build-arg USER_NAME=$(USER_NAME) --build-arg USER_PWD=$(USER_PWD) --build-arg ROOT_PWD=$(ROOT_PWD) -t $(IMAGE_INLINE_CACHE_NAME) ./base
+	@docker push $(IMAGE_INLINE_CACHE_NAME)
 
 #build-base: @ Build base image
 build-base: check-env
-	@DOCKER_BUILDKIT=1 docker build --build-arg IMAGE_LABEL=${IMAGE} --build-arg SSH_PUBLIC_KEY="$(SSH_PUBLIC_KEY)" --build-arg SSH_PRIVATE_KEY="$(SSH_PRIVATE_KEY)" --cache-from $(IMAGE_INLINE_CACHE_NAME) --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg USER_UID=${USER_UID} --build-arg USER_GID=${USER_GID} --build-arg USER_NAME=${USER_NAME} --build-arg USER_PWD=${USER_PWD} --build-arg ROOT_PWD=${ROOT_PWD} -t $(IMAGE_NAME) ./base
+	@docker build --build-arg IMAGE_LABEL=$(IMAGE) --build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) --build-arg USER_UID=$(USER_UID) --build-arg USER_GID=$(USER_GID) --build-arg USER_NAME=$(USER_NAME) --build-arg USER_PWD=$(USER_PWD) --build-arg ROOT_PWD=$(ROOT_PWD) -t $(IMAGE_NAME) ./base
 
 #run-base: @ Run base image
 run-base: check-env
@@ -95,7 +116,7 @@ run-base: check-env
 push-base: login build-base
 	@docker push $(IMAGE_NAME)
 
-IMAGE_CMD := docker images --filter=reference=$(IMAGE_NAME) --format "{{.ID	}}" | awk '{print $$1}'
+IMAGE_CMD := docker images --filter=reference=$(IMAGE_NAME) --format "{{.ID}}" | awk '{print $$1}'
 IMAGE_ID  := $(shell $(IMAGE_CMD))
 IMAGE_CNT := $(shell $(IMAGE_CMD) | wc -l)
 
@@ -111,28 +132,28 @@ delete-base: check-env
 
 ifeq ($(shell test $(IMAGE_CNT) -gt 0; echo $$?),0)
 # remove image
-	docker rmi -f $(IMAGE_ID) 
+	docker rmi -f $(IMAGE_ID)
 endif
 
 ifeq ($(shell test $(IMAGE_LAYER_CNT) -gt 0; echo $$?),0)
 # remove image layers
-	@docker rmi -f $(IMAGE_LAYER_CMD) 
+	@docker rmi -f $$($(IMAGE_LAYER_CMD))
 endif
 
 ifeq ($(shell test $(IMAGE_CACHE_CNT) -gt 0; echo $$?),0)
 # remove image inline cache
-	docker rmi -f $(IMAGE_CACHE_ID) 
+	docker rmi -f $(IMAGE_CACHE_ID)
 endif
 
 
 #build-java-inline-cache: @ Build remote cache for the java dev image
 build-java-inline-cache: check-env build-base
-	@DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg IMAGE_LABEL=${IMAGE_JAVA} --build-arg SSH_PUBLIC_KEY="$(SSH_PUBLIC_KEY)" --build-arg SSH_PRIVATE_KEY="$(SSH_PRIVATE_KEY)" --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg JAVA_VERSION=${JAVA_VERSION} --build-arg MAVEN_VERSION=${MAVEN_VERSION} --build-arg GOLANG_VERSION=${GOLANG_VERSION} -t $(IMAGE_JAVA_INLINE_CACHE_NAME) ./java
-	@DOCKER_BUILDKIT=1 docker push $(IMAGE_JAVA_INLINE_CACHE_NAME)
+	@docker build --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg IMAGE_LABEL=$(IMAGE_JAVA) --build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) -t $(IMAGE_JAVA_INLINE_CACHE_NAME) ./java
+	@docker push $(IMAGE_JAVA_INLINE_CACHE_NAME)
 
 #build-java: @ Build java dev image
 build-java: check-env build-base
-	@DOCKER_BUILDKIT=1 docker build --build-arg IMAGE_LABEL=${IMAGE_JAVA} --build-arg SSH_PUBLIC_KEY="$(SSH_PUBLIC_KEY)" --build-arg SSH_PRIVATE_KEY="$(SSH_PRIVATE_KEY)" --cache-from $(IMAGE_JAVA_INLINE_CACHE_NAME) --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg JAVA_VERSION=${JAVA_VERSION} --build-arg MAVEN_VERSION=${MAVEN_VERSION} --build-arg GOLANG_VERSION=${GOLANG_VERSION} -t $(IMAGE_JAVA_NAME) ./java
+	@docker build --build-arg IMAGE_LABEL=$(IMAGE_JAVA) --build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) -t $(IMAGE_JAVA_NAME) ./java
 
 #run-java: @ Run java dev image
 run-java: check-env
@@ -142,7 +163,7 @@ run-java: check-env
 push-java: login build-java
 	@docker push $(IMAGE_JAVA_NAME)
 
-IMAGE_JAVA_CMD := docker images --filter=reference=$(IMAGE_JAVA_NAME) --format "{{.ID	}}" | awk '{print $$1}'
+IMAGE_JAVA_CMD := docker images --filter=reference=$(IMAGE_JAVA_NAME) --format "{{.ID}}" | awk '{print $$1}'
 IMAGE_JAVA_ID  := $(shell $(IMAGE_JAVA_CMD))
 IMAGE_JAVA_CNT := $(shell $(IMAGE_JAVA_CMD) | wc -l)
 
@@ -150,7 +171,7 @@ IMAGE_JAVA_CACHE_CMD := docker images --filter=reference=$(IMAGE_JAVA_INLINE_CAC
 IMAGE_JAVA_CACHE_ID  := $(shell $(IMAGE_JAVA_CACHE_CMD))
 IMAGE_JAVA_CACHE_CNT := $(shell $(IMAGE_JAVA_CACHE_CMD) | wc -l)
 
-IMAGE_JAVA_LAYER_CMD := docker images -q --filter label=${IMAGE_JAVA}
+IMAGE_JAVA_LAYER_CMD := docker images -q --filter label=$(IMAGE_JAVA)
 IMAGE_JAVA_LAYER_CNT := $(shell $(IMAGE_JAVA_LAYER_CMD) | wc -l)
 
 #delete-java: @ Delete java dev image locally
@@ -158,17 +179,17 @@ delete-java: check-env
 
 ifeq ($(shell test $(IMAGE_JAVA_CNT) -gt 0; echo $$?),0)
 # remove image
-	docker rmi -f $(IMAGE_JAVA_ID) 
+	docker rmi -f $(IMAGE_JAVA_ID)
 endif
 
 ifeq ($(shell test $(IMAGE_JAVA_LAYER_CNT) -gt 0; echo $$?),0)
 # remove image layers
-	@docker rmi -f $(IMAGE_JAVA_LAYER_CMD) 
+	@docker rmi -f $$($(IMAGE_JAVA_LAYER_CMD))
 endif
 
 ifeq ($(shell test $(IMAGE_JAVA_CACHE_CNT) -gt 0; echo $$?),0)
 # remove image inline cache
-	docker rmi -f $(IMAGE_JAVA_CACHE_ID) 
+	docker rmi -f $(IMAGE_JAVA_CACHE_ID)
 endif
 
 CNT_TAG_CMD     := docker images | grep '<none>' | awk '{print $$3}'
@@ -184,42 +205,61 @@ CNT_DANGLING_CMD := docker volume ls -qf dangling=true
 CNT_DANGLING     := $(shell $(CNT_DANGLING_CMD) | wc -l)
 
 
-#build-go: @ Build go dev image
+#build-go: @ Build go dev image (secrets via BuildKit secret mounts)
 build-go: check-env build-base
-	@DOCKER_BUILDKIT=1 docker build --build-arg IMAGE_LABEL=${IMAGE_GO} --build-arg USER_EMAIL="AndriyKalashnykov@gmail.com" --build-arg UBUNTU_VERSION=${UBUNTU_VERSION} --build-arg GOLANG_VERSION=${GOLANG_VERSION}  --build-arg GITHUB_PAT=${GITHUB_PAT} --build-arg SSH_PUBLIC_KEY=$(SSH_PUBLIC_KEY) --build-arg SSH_PRIVATE_KEY=$(SSH_PRIVATE_KEY) --build-arg GPG_SECRET=$(GPG_SECRET) --build-arg GPG_OWNER_TRUST=$(GPG_OWNER_TRUST) --build-arg GPG_PWD=${MY_GPG_PASSWORD} -t $(IMAGE_GO_NAME) ./go
+	@docker build $(GO_BUILD_SECRETS) --build-arg IMAGE_LABEL=$(IMAGE_GO) --build-arg USER_EMAIL="AndriyKalashnykov@gmail.com" --build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) -t $(IMAGE_GO_NAME) ./go
 
-#run-go: @ Run go dev image
+#run-go: @ Run go dev image (mounts the docker socket via --group-add, no chmod)
 run-go: check-env
-	@sudo chmod 666 /var/run/docker.sock
-	@docker run -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd)/:/home/user/host_launchdir --name docker-ubuntu-go -it --rm $(IMAGE_GO_NAME) bash
+	@docker run --group-add "$$(stat -c '%g' /var/run/docker.sock)" -v /var/run/docker.sock:/var/run/docker.sock -v "$$(pwd)":/home/user/host_launchdir --name docker-ubuntu-go -it --rm $(IMAGE_GO_NAME) bash
 
-#push-go: @ Push java dev image to a registry
+#push-go: @ Push go dev image to a registry
 push-go: login build-go
 	@docker push $(IMAGE_GO_NAME)
 
-#build-all: @ Build all and images
+IMAGE_GO_CMD := docker images --filter=reference=$(IMAGE_GO_NAME) --format "{{.ID}}" | awk '{print $$1}'
+IMAGE_GO_ID  := $(shell $(IMAGE_GO_CMD))
+IMAGE_GO_CNT := $(shell $(IMAGE_GO_CMD) | wc -l)
+
+IMAGE_GO_LAYER_CMD := docker images -q --filter label=$(IMAGE_GO)
+IMAGE_GO_LAYER_CNT := $(shell $(IMAGE_GO_LAYER_CMD) | wc -l)
+
+#delete-go: @ Delete go dev image locally
+delete-go: check-env
+
+ifeq ($(shell test $(IMAGE_GO_CNT) -gt 0; echo $$?),0)
+# remove image
+	docker rmi -f $(IMAGE_GO_ID)
+endif
+
+ifeq ($(shell test $(IMAGE_GO_LAYER_CNT) -gt 0; echo $$?),0)
+# remove image layers
+	@docker rmi -f $$($(IMAGE_GO_LAYER_CMD))
+endif
+
+#build-all: @ Build base + go + java images
 build-all: check-env build-base build-go build-java
 
-#build-push-all: @ Build and push all cache and images
+#build-push-all: @ Build and push all caches and images
 build-push-all: check-env build-base-inline-cache build-base push-base build-go push-go build-java-inline-cache build-java push-java
 
 #cleanup: @ Cleanup docker images, containers, volumes, networks, build cache
 cleanup: delete-go delete-java delete-base
 
 ifeq ($(shell test $(CNT_TAG) -gt 0; echo $$?),0)
-# remove tagged <none> 	
+# remove tagged <none>
 	@docker rmi -f $$($(CNT_TAG_CMD))
 endif
 
 ifeq ($(shell test $(CNT_EXITED) -gt 0; echo $$?),0)
-# remove docker containers exited 
+# remove docker containers exited
 	@docker rm $$($(CNT_EXITED_CMD))
-endif	
+endif
 
 ifeq ($(shell test $(CNT_NETWORK) -gt 0; echo $$?),0)
 # remove networks
 	@docker network rm -q $$($(CNT_NETWORK_CMD))
-endif	
+endif
 
 ifeq ($(shell test $(CNT_DANGLING) -gt 0; echo $$?),0)
 # remove volumes
@@ -232,3 +272,9 @@ img:
 	@silicon ./base/Dockerfile -o ./images/ubuntu-base.png --background '#fff0'
 	@silicon Dockerfile -o ./images/ubuntu-java.png --background '#fff0'
 	@shutter --window=.*Tilix.* -o ./images/terminal.png -e
+
+.PHONY: help check-env login lint ci renovate-validate \
+	build-base-inline-cache build-base run-base push-base delete-base \
+	build-java-inline-cache build-java run-java push-java delete-java \
+	build-go run-go push-go delete-go \
+	build-all build-push-all cleanup img

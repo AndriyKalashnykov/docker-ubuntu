@@ -1,0 +1,22 @@
+# hadolint config for the docker-ubuntu dev images.
+#
+# These are interactive *development-environment* containers (not minimal
+# production images), so several default hadolint rules are deliberately
+# inapplicable. Errors block `make lint`; warnings/info stay advisory and
+# still print. Each ignore below is an intentional design decision, not a
+# silenced real defect.
+failure-threshold: error
+
+ignored:
+  # The images intentionally run as a non-root user with passwordless sudo so
+  # the dev workflow (apt installs, docker socket, etc.) works inside the
+  # container. `sudo` is a feature here, not the anti-pattern DL3004 targets.
+  - DL3004
+  # ENTRYPOINT uses the shell form on purpose: it sources scripts/entry.sh
+  # (which runs `mise activate`) before exec'ing the command. JSON-array form
+  # cannot source a shell hook.
+  - DL3025
+  # apt version pinning is impractical against the (currently EOL) Ubuntu
+  # release's archived repos; tracked instead via the "upgrade base OS" backlog
+  # item. Revisit after moving to a current LTS.
+  - DL3008

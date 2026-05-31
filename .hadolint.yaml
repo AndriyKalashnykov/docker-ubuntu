@@ -16,7 +16,9 @@ ignored:
   # (which runs `mise activate`) before exec'ing the command. JSON-array form
   # cannot source a shell hook.
   - DL3025
-  # apt version pinning is impractical against the (currently EOL) Ubuntu
-  # release's archived repos; tracked instead via the "upgrade base OS" backlog
-  # item. Revisit after moving to a current LTS.
+  # DL3008 (pin apt package versions): impractical for a broad, frequently-updated
+  # dev toolchain — pinning ~40 packages to exact versions would fight Ubuntu
+  # security updates and break whenever the archive rotates a point release. The
+  # base image is rebuilt regularly (Renovate-tracked OS tag on a current LTS), so
+  # floating apt versions stay patched.
   - DL3008

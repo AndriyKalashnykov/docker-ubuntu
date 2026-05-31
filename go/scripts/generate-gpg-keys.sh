@@ -1,24 +1,24 @@
 #!/bin/bash
 #
-# Import GPG key material provided as BuildKit secret mounts:
-#   /run/secrets/gpg_secret      — the secret key (raw, ASCII-armored or binary)
-#   /run/secrets/gpg_ownertrust  — the ownertrust export
-#   /run/secrets/gpg_pwd         — the key passphrase
-# If any is missing, the import is skipped. No key material is ever a build arg.
+# Runtime GPG import — called by scripts/entry.sh at CONTAINER START (not at build
+# time). Key material is bind-mounted read-only at $GPG_SRC_DIR (default
+# /run/host-gpg) and the passphrase comes from the MY_GPG_PASSWORD env var, both
+# injected by `make run-go`. Skipped if absent. Nothing is baked into the image.
 
-USER_NAME=${1:-user}
+set -uo pipefail
 
-if [ -s /run/secrets/gpg_secret ] && [ -s /run/secrets/gpg_pwd ] && [ -s /run/secrets/gpg_ownertrust ]; then
-    echo "Importing provided GPG keys..."
-    GPG_PWD="$(cat /run/secrets/gpg_pwd)"
+GPG_SRC_DIR="${GPG_SRC_DIR:-/run/host-gpg}"
 
-    # https://unix.stackexchange.com/questions/60213/gpg-asks-for-password-even-with-passphrase
-    echo "$GPG_PWD" | gpg --batch --yes --passphrase-fd 0 --import /run/secrets/gpg_secret
-    gpg --import-ownertrust /run/secrets/gpg_ownertrust
-
-    gpg --batch=true --version
-    gpg --list-secret-keys --keyid-format=long || true
-    gpg --export-ownertrust || true
+if [ -s "${GPG_SRC_DIR}/secret.key" ] && [ -s "${GPG_SRC_DIR}/ownertrust.txt" ] && [ -n "${MY_GPG_PASSWORD:-}" ]; then
+    if gpg --list-secret-keys 2>/dev/null | grep -q '^sec'; then
+        echo "GPG secret key already present — skipping import."
+    else
+        echo "Importing operator GPG key from ${GPG_SRC_DIR} (runtime mount)..."
+        # https://unix.stackexchange.com/questions/60213
+        echo "$MY_GPG_PASSWORD" | gpg --batch --yes --passphrase-fd 0 --import "${GPG_SRC_DIR}/secret.key"
+        gpg --import-ownertrust "${GPG_SRC_DIR}/ownertrust.txt"
+        gpg --list-secret-keys --keyid-format=long || true
+    fi
 else
     echo "GPG key material not provided — skipping GPG import."
 fi

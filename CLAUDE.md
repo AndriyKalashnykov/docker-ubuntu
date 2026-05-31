@@ -19,7 +19,7 @@ make renovate-validate# Validate renovate.json against the schema
 make login            # Log in to GHCR (needs GITHUB_PAT with write:packages)
 make build-base       # Build base; build-java/build-go depend on this
 make build-java       # Build Java dev image (FROM base)
-make build-go         # Build Go dev image  (FROM base) — secrets via BuildKit mounts
+make build-go         # Build Go dev image  (FROM base) — credential-free; creds injected at run time
 make run-base|run-java|run-go   # docker run -it --rm <img> bash (run-go bind-mounts the docker socket and CWD, joins the host docker group via --group-add — DooD)
 make delete-base|delete-java|delete-go
 make build-all        # build-base + build-go + build-java
@@ -55,26 +55,26 @@ Key rules:
   (Go dev CLIs). Non-mise tools (apt packages, docker-engine, the multi-component gcloud
   SDK) stay on apt / official pinned installers — see TOOLING.md for the why.
 
-## Secrets (BuildKit secret mounts, not build args)
+## Secrets (runtime injection, not baked into the image)
 
-**base and java are secret-free** (base generates its own SSH key; java reuses the
-inherited one) — they build with no host secrets and are published from CI. Only the **go**
-image consumes operator secrets, and only via **BuildKit `--secret` mounts** (never build
-args — those leak through `docker history`):
+**All three images are credential-free at build time** — base, java, and go build with
+no host secrets, so any of them can be built anywhere (including CI). base generates its
+own SSH key; java reuses the inherited one. The **go** image's operator credentials
+(SSH/GPG/PAT) are injected **at container start** by `go/scripts/entry.sh`, from runtime
+bind-mounts / env supplied by `make run-go` — they never enter the image filesystem:
 
-| Secret id | Source | Absent → |
-|-----------|--------|----------|
-| `ssh_priv` / `ssh_pub` | `~/.ssh/id_rsa{,.pub}` | a fresh key is generated |
-| `gpg_secret` / `gpg_ownertrust` | `${DOTFILES_DIR}/gnupg/AndriyKalashnykov-*.{key,txt}` | GPG import skipped |
-| `gpg_pwd` | `$MY_GPG_PASSWORD` | GPG import skipped |
-| `github_pat` | `$GITHUB_PAT` | `.netrc` not written |
+| Credential | Runtime source (mounted/passed by `make run-go`) | In-container target | Absent → |
+|-----------|--------|--------|----------|
+| SSH key | `~/.ssh/id_rsa{,.pub}` → `/run/host-ssh/` (ro bind) | `~/.ssh/id_rsa{,.pub}` + `authorized_keys` | a fresh per-container key is generated |
+| GPG key | `${DOTFILES_DIR}/gnupg/AndriyKalashnykov-*.{key,txt}` → `/run/host-gpg/` (ro bind) | imported into `~/.gnupg` | GPG import skipped |
+| GPG passphrase | `$MY_GPG_PASSWORD` (`-e`, value from env) | used for the import | GPG import skipped |
+| GitHub PAT | `$GITHUB_PAT` (`-e`, value from env) | `~/.netrc` (0600) | `.netrc` not written |
 
-The Makefile builds the `GO_BUILD_SECRETS` list conditionally (`$(wildcard ...)`), so the
-go image builds with whatever subset is present. The go image's scripts read
-`/run/secrets/<id>` and fall back gracefully. NOTE: the go image still *contains* the
-operator's key material in its filesystem by design (a personal dev container). CI does
-not build go, and **`make push-go` is blocked unless `ALLOW_GO_PUSH=1`** (and
-`build-push-all` excludes it) — keep go images on private registries only.
+The Makefile builds the `GO_RUN_CREDS` mount/env list conditionally (`$(wildcard ...)` +
+`-e VAR` name-only, so secret VALUES never touch argv). Because the go image no longer
+contains operator credentials it is now safe to build/share, but it stays **local-only by
+policy** (a personal dev container layered on the published base+java): CI does not build
+go, **`make push-go` is blocked unless `ALLOW_GO_PUSH=1`**, and `build-push-all` excludes it.
 
 ## Architecture
 
@@ -88,9 +88,10 @@ ubuntu:26.04 (UBUNTU_VERSION)
 ```
 
 Each `<context>/` directory holds: a `Dockerfile`, a pinned `.mise.toml`, and a small
-`scripts/` dir (`entry.sh` activates mise; `go/scripts` also keeps
-`generate-ssh-keys.sh` / `generate-gpg-keys.sh`, which read `/run/secrets/*`). The old
-`install-*.sh` tool-fetch scripts were removed when mise took over.
+`scripts/` dir. `entry.sh` activates mise at container start; the **go** `entry.sh` also
+runs `generate-ssh-keys.sh` / `generate-gpg-keys.sh` then, setting up credentials from
+runtime bind-mounts (`/run/host-ssh`, `/run/host-gpg`) + env — nothing is baked into the
+image. The old `install-*.sh` tool-fetch scripts were removed when mise took over.
 
 ### Cross-cutting build mechanics
 
@@ -139,8 +140,11 @@ agent's prompt.
 
 - **Multi-arch** — images build `linux/amd64` only; add `linux/arm64` for Apple Silicon /
   Graviton (gcloud + some mise tools need arch-aware asset selection).
-- **go image credential surface** — the go image bakes operator SSH/GPG/PAT material into
-  its filesystem by design (personal dev container). Keep go images private; consider a
-  runtime-mount alternative if it ever needs to be shared.
-- **Publish go from CI** — currently local-only because it needs operator secrets; would
-  require GH secrets + a decision on the credential surface above.
+- **Publish go from CI** — now *unblocked* (the go image is credential-free; see "Secrets"
+  above). Still local-only by policy; enabling CI publish would only require adding go to
+  the build/push jobs — no secret-surface decision remains.
+
+### Resolved
+- **go image credential surface** — RESOLVED. Operator SSH/GPG/PAT are injected at
+  container start (`go/scripts/entry.sh` from `make run-go` runtime mounts/env), never
+  baked into the image filesystem.

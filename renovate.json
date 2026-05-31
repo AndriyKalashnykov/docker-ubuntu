@@ -49,6 +49,19 @@
         "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?\\s+\\w+ := (?<currentValue>\\S+)"
       ],
       "versioningTemplate": "{{#if versioning}}{{versioning}}{{else}}semver{{/if}}"
+    },
+    {
+      "customType": "regex",
+      "description": "Keep the ubuntu base-image manifest-list digest (UBUNTU_DIGEST) in sync with the UBUNTU_VERSION tag in base/Dockerfile",
+      "managerFilePatterns": [
+        "/(^|/)base/Dockerfile$/"
+      ],
+      "matchStrings": [
+        "ARG UBUNTU_VERSION=\"(?<currentValue>[^\"]+)\"[\\s\\S]*?ARG UBUNTU_DIGEST=\"(?<currentDigest>sha256:[a-f0-9]+)\""
+      ],
+      "depNameTemplate": "ubuntu",
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
     }
   ]
 }

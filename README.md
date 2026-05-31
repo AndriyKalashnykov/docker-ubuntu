@@ -45,7 +45,6 @@ delete-go               - Delete go dev image locally
 build-all               - Build base + go + java images
 build-push-all          - Build and push the publishable images (base + java; go is local-only)
 cleanup                 - Cleanup docker images, containers, volumes, networks, build cache
-img                     - Regenerate README screenshots (needs silicon + shutter)
 ```
 
 ## Image hierarchy

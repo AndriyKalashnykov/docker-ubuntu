@@ -309,16 +309,8 @@ endif
 
 	@docker builder prune -af
 
-#img: @ Regenerate README screenshots (needs silicon + shutter)
-img:
-	@command -v silicon >/dev/null 2>&1 || { echo "ERROR: silicon not found (cargo install silicon)"; exit 1; }
-	@command -v shutter >/dev/null 2>&1 || { echo "ERROR: shutter not found"; exit 1; }
-	@silicon ./base/Dockerfile -o ./images/ubuntu-base.png --background '#fff0'
-	@silicon ./java/Dockerfile -o ./images/ubuntu-java.png --background '#fff0'
-	@shutter --window=.*Tilix.* -o ./images/terminal.png -e
-
 .PHONY: help check-env login lint lint-scripts-exec ci renovate-validate \
 	build-base-inline-cache build-base run-base push-base delete-base \
 	build-java-inline-cache build-java run-java push-java delete-java \
 	build-go run-go push-go delete-go \
-	build-all build-push-all cleanup img
+	build-all build-push-all cleanup

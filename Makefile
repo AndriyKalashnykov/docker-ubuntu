@@ -6,7 +6,7 @@ SHELL := /bin/bash
 # the per-image .mise.toml files (base/.mise.toml, java/.mise.toml, go/.mise.toml)
 # and managed by mise + Renovate — NOT here.
 # renovate: datasource=docker depName=ubuntu versioning=ubuntu
-UBUNTU_VERSION := 24.04
+UBUNTU_VERSION := 26.04
 
 ROOT_PWD := Docker!
 USER_UID := 1000

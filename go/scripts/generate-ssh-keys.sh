@@ -1,23 +1,50 @@
 #!/bin/bash
 #
-# Install SSH keys into the user's ~/.ssh. Keys are provided as BuildKit secret
-# mounts (raw files at /run/secrets/ssh_priv and /run/secrets/ssh_pub); if absent,
-# a fresh key pair is generated. No key material is ever passed as a build arg.
+# Runtime SSH key setup — called by scripts/entry.sh at CONTAINER START (not at
+# build time). Operator keys are bind-mounted read-only at $SSH_SRC_DIR (default
+# /run/host-ssh) by `make run-go`; whichever standard key types are present
+# (id_rsa, id_ed25519, id_ecdsa) are copied in. If none are mounted, a fresh
+# throwaway RSA key is generated. No key material is ever baked into the image —
+# it exists only in the running container's writable layer.
 
-USER_NAME=${1:-user}
-USER_EMAIL=${2:-user@test.com}
+set -euo pipefail
 
-mkdir -p "/home/${USER_NAME}/.ssh"
+USER_NAME="${1:-${USER:-user}}"
+USER_EMAIL="${2:-user@test.com}"
+SSH_SRC_DIR="${SSH_SRC_DIR:-/run/host-ssh}"
+SSH_DIR="/home/${USER_NAME}/.ssh"
 
-if [ -s /run/secrets/ssh_priv ] && [ -s /run/secrets/ssh_pub ]; then
-    echo "Using provided SSH keys..."
-    cp /run/secrets/ssh_priv "/home/${USER_NAME}/.ssh/id_rsa"
-    cp /run/secrets/ssh_pub  "/home/${USER_NAME}/.ssh/id_rsa.pub"
-else
-    echo "Generating SSH keys..."
-    ssh-keygen -q -t rsa -b 4096 -N '' -C "$USER_EMAIL" -f "/home/${USER_NAME}/.ssh/id_rsa"
+mkdir -p "$SSH_DIR"
+
+copied=0
+if [ -d "$SSH_SRC_DIR" ]; then
+    for name in id_rsa id_ed25519 id_ecdsa; do
+        [ -s "${SSH_SRC_DIR}/${name}" ] || continue
+        echo "Using operator SSH key ${name} from ${SSH_SRC_DIR} (runtime mount)..."
+        cp "${SSH_SRC_DIR}/${name}" "${SSH_DIR}/${name}"
+        chmod 600 "${SSH_DIR}/${name}"
+        if [ -s "${SSH_SRC_DIR}/${name}.pub" ]; then
+            cp "${SSH_SRC_DIR}/${name}.pub" "${SSH_DIR}/${name}.pub"
+            chmod 644 "${SSH_DIR}/${name}.pub"
+        fi
+        copied=1
+    done
 fi
 
-chmod 700 "/home/${USER_NAME}/.ssh"
-chmod 600 "/home/${USER_NAME}/.ssh/id_rsa"
-chmod 644 "/home/${USER_NAME}/.ssh/id_rsa.pub"
+if [ "$copied" -eq 0 ] && [ ! -f "${SSH_DIR}/id_rsa" ]; then
+    echo "No operator SSH keys mounted — generating a fresh per-container key pair..."
+    ssh-keygen -q -t rsa -b 4096 -N '' -C "$USER_EMAIL" -f "${SSH_DIR}/id_rsa"
+fi
+
+chmod 700 "$SSH_DIR"
+
+# Allow ssh-ing into this container with whatever public keys are present
+# (idempotent — never duplicates a line).
+touch "${SSH_DIR}/authorized_keys"
+for pub in "${SSH_DIR}"/*.pub; do
+    [ -s "$pub" ] || continue
+    if ! grep -qxFf "$pub" "${SSH_DIR}/authorized_keys" 2>/dev/null; then
+        cat "$pub" >> "${SSH_DIR}/authorized_keys"
+    fi
+done
+chmod 600 "${SSH_DIR}/authorized_keys"

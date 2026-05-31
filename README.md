@@ -43,17 +43,18 @@ The full strategy and the list of what is/ isn't mise-managed is documented in
 
 | Requirement | Notes |
 |-------------|-------|
-| [Docker](https://docs.docker.com/get-docker/) with BuildKit | `DOCKER_BUILDKIT=1`; `buildx` for `--secret` mounts |
+| [Docker](https://docs.docker.com/get-docker/) with BuildKit | `DOCKER_BUILDKIT=1` |
 | GNU Make | drives all build/run/push targets |
 | `GITHUB_PAT` (write:packages) | only for `make login` / `push-*` to GHCR |
 
-**base** and **java** build with no host secrets. The **go** image optionally
-consumes operator secrets via BuildKit secret mounts (it builds without them — a
-fresh SSH key is generated and the GPG import is skipped): an SSH key pair at
-`~/.ssh/id_rsa{,.pub}`, a GPG key pair at
+**All three images build with no host secrets** — the filesystem is credential-free.
+For the **go** image, the operator's credentials are injected **at container start**
+by `make run-go` (never baked into the image): the SSH key pair at
+`~/.ssh/id_rsa{,.pub}`, the GPG key pair at
 `${DOTFILES_DIR}/gnupg/AndriyKalashnykov-secret-gpg.key` + `…-ownertrust-gpg.txt`
 (`DOTFILES_DIR` defaults to `~/projects/dotfiles`), and the `GITHUB_PAT` /
-`MY_GPG_PASSWORD` env vars. These paths are owner-specific.
+`MY_GPG_PASSWORD` env vars — each used only if present (otherwise a fresh SSH key is
+generated and GPG/PAT setup is skipped). These paths are owner-specific.
 
 ```bash
 export GITHUB_PAT=<github-pat-with-write:packages>   # for `make login` / push to GHCR
@@ -124,7 +125,7 @@ Run `make help` for the authoritative list.
 | `build-base` / `run-base` / `push-base` / `delete-base` | Base image lifecycle |
 | `build-java` / `run-java` / `push-java` / `delete-java` | Java image lifecycle |
 | `build-go` / `run-go` / `delete-go` | Go image lifecycle (built locally only) |
-| `push-go` | Push go image — **blocked unless `ALLOW_GO_PUSH=1`** (it bakes operator creds; private registries only) |
+| `push-go` | Push go image — **blocked unless `ALLOW_GO_PUSH=1`** (local-only by policy; the image is credential-free) |
 | `build-base-inline-cache` / `build-java-inline-cache` | Build & push the registry inline cache |
 | `build-all` | Build base + go + java |
 | `build-push-all` | Build & push the **publishable** images (base + java; go excluded) |
@@ -134,8 +135,8 @@ Run `make help` for the authoritative list.
 
 | Variable | Purpose |
 |----------|---------|
-| `GITHUB_PAT` | GHCR auth (write:packages) for `login`/`push-*`; also injected into the **go** image `.netrc` (secret mount) |
-| `MY_GPG_PASSWORD` | GPG key passphrase for the **go** image (secret mount) |
+| `GITHUB_PAT` | GHCR auth (write:packages) for `login`/`push-*`; also injected into the **go** image `.netrc` at run time |
+| `MY_GPG_PASSWORD` | GPG key passphrase for the **go** image (passed to `make run-go` at run time) |
 | `DOTFILES_DIR` | Override the dotfiles path (default `~/projects/dotfiles`) |
 | `DOCKER_REGISTRY` | Override the publish registry (default `ghcr.io`) |
 
@@ -147,7 +148,7 @@ Run `make help` for the authoritative list.
   (build → Trivy image scan → tag-gated push (`:26.04` + `:latest` + `:sha-…`) →
   cosign keyless signing by digest → SBOM generation) → `ci-pass` (single required
   status check). PRs build and scan but do not push/sign. The **go** image is
-  built locally only (it needs operator secrets).
+  built locally only (a personal dev container; local-only by policy).
 - **Cleanup runs** ([`cleanup-runs.yml`](./.github/workflows/cleanup-runs.yml))
   — weekly prune of old workflow runs via the `gh` CLI.
 

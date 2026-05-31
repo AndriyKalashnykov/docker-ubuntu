@@ -38,30 +38,39 @@ export DOCKER_BUILDKIT=1
 
 DOTFILES_DIR ?= $(HOME)/projects/dotfiles
 
-# The go image's secrets (GitHub PAT, GPG key material, SSH keys) are passed via
-# BuildKit secret mounts — NEVER build args (which leak via `docker history` and
-# argv). Each is included only when present on the host, so the build works
-# without them: the in-image scripts fall back (generate a fresh SSH key, skip
-# the GPG import). Secret VALUES never touch the command line — env secrets read
-# the inherited env; file secrets are streamed from disk by BuildKit.
-GO_BUILD_SECRETS :=
-ifneq ($(strip $(GITHUB_PAT)),)
-GO_BUILD_SECRETS += --secret id=github_pat,env=GITHUB_PAT
-endif
-ifneq ($(strip $(MY_GPG_PASSWORD)),)
-GO_BUILD_SECRETS += --secret id=gpg_pwd,env=MY_GPG_PASSWORD
-endif
-ifneq ($(wildcard $(DOTFILES_DIR)/gnupg/AndriyKalashnykov-secret-gpg.key),)
-GO_BUILD_SECRETS += --secret id=gpg_secret,src=$(DOTFILES_DIR)/gnupg/AndriyKalashnykov-secret-gpg.key
-endif
-ifneq ($(wildcard $(DOTFILES_DIR)/gnupg/AndriyKalashnykov-ownertrust-gpg.txt),)
-GO_BUILD_SECRETS += --secret id=gpg_ownertrust,src=$(DOTFILES_DIR)/gnupg/AndriyKalashnykov-ownertrust-gpg.txt
-endif
+# Runtime credential injection for the go image (`make run-go`). The image bakes
+# NO secrets — the operator's SSH/GPG keys and PAT are mounted/passed at CONTAINER
+# START and set up by go/scripts/entry.sh. Each is included only when present on
+# the host (so a bare run still works: a fresh SSH key is generated, GPG/PAT
+# skipped). Secret VALUES never touch argv: `-e` passes the var NAME (value
+# inherited from the env); file secrets are read-only bind mounts.
+# Per-file `$(wildcard ...)` guards are load-bearing: mounting a NON-existent host
+# path makes Docker create a root-owned empty dir at both ends, so only files that
+# actually exist are mounted. Both id_rsa and id_ed25519 are supported.
+GO_RUN_CREDS :=
 ifneq ($(wildcard $(HOME)/.ssh/id_rsa),)
-GO_BUILD_SECRETS += --secret id=ssh_priv,src=$(HOME)/.ssh/id_rsa
+GO_RUN_CREDS += -v $(HOME)/.ssh/id_rsa:/run/host-ssh/id_rsa:ro
 endif
 ifneq ($(wildcard $(HOME)/.ssh/id_rsa.pub),)
-GO_BUILD_SECRETS += --secret id=ssh_pub,src=$(HOME)/.ssh/id_rsa.pub
+GO_RUN_CREDS += -v $(HOME)/.ssh/id_rsa.pub:/run/host-ssh/id_rsa.pub:ro
+endif
+ifneq ($(wildcard $(HOME)/.ssh/id_ed25519),)
+GO_RUN_CREDS += -v $(HOME)/.ssh/id_ed25519:/run/host-ssh/id_ed25519:ro
+endif
+ifneq ($(wildcard $(HOME)/.ssh/id_ed25519.pub),)
+GO_RUN_CREDS += -v $(HOME)/.ssh/id_ed25519.pub:/run/host-ssh/id_ed25519.pub:ro
+endif
+ifneq ($(wildcard $(DOTFILES_DIR)/gnupg/AndriyKalashnykov-secret-gpg.key),)
+GO_RUN_CREDS += -v $(DOTFILES_DIR)/gnupg/AndriyKalashnykov-secret-gpg.key:/run/host-gpg/secret.key:ro
+endif
+ifneq ($(wildcard $(DOTFILES_DIR)/gnupg/AndriyKalashnykov-ownertrust-gpg.txt),)
+GO_RUN_CREDS += -v $(DOTFILES_DIR)/gnupg/AndriyKalashnykov-ownertrust-gpg.txt:/run/host-gpg/ownertrust.txt:ro
+endif
+ifneq ($(strip $(GITHUB_PAT)),)
+GO_RUN_CREDS += -e GITHUB_PAT
+endif
+ifneq ($(strip $(MY_GPG_PASSWORD)),)
+GO_RUN_CREDS += -e MY_GPG_PASSWORD
 endif
 
 # make sure docker is installed
@@ -216,20 +225,21 @@ CNT_DANGLING_CMD := docker volume ls -qf dangling=true
 CNT_DANGLING     := $(shell $(CNT_DANGLING_CMD) | wc -l)
 
 
-#build-go: @ Build go dev image (secrets via BuildKit secret mounts)
+#build-go: @ Build go dev image (no secrets — image is credential-free)
 build-go: check-env build-base
-	@docker build $(GO_BUILD_SECRETS) --build-arg IMAGE_LABEL=$(IMAGE_GO) --build-arg USER_EMAIL="$(USER_EMAIL)" --build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) -t $(IMAGE_GO_NAME) ./go
+	@docker build --build-arg IMAGE_LABEL=$(IMAGE_GO) --build-arg USER_EMAIL="$(USER_EMAIL)" --build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) -t $(IMAGE_GO_NAME) ./go
 
-#run-go: @ Run go dev image (mounts the docker socket via --group-add, no chmod)
+#run-go: @ Run go dev image (DooD socket + runtime-injected SSH/GPG/PAT creds)
 run-go: check-env
-	@docker run --group-add "$$(stat -c '%g' /var/run/docker.sock)" -v /var/run/docker.sock:/var/run/docker.sock -v "$$(pwd)":/home/user/host_launchdir --name docker-ubuntu-go -it --rm $(IMAGE_GO_NAME) bash
+	@docker run --group-add "$$(stat -c '%g' /var/run/docker.sock)" -v /var/run/docker.sock:/var/run/docker.sock -v "$$(pwd)":/home/user/host_launchdir $(GO_RUN_CREDS) --name docker-ubuntu-go -it --rm $(IMAGE_GO_NAME) bash
 
-#push-go: @ Push go dev image (BLOCKED by default — bakes operator creds; set ALLOW_GO_PUSH=1)
+#push-go: @ Push go dev image (BLOCKED by default — local-only by policy; set ALLOW_GO_PUSH=1)
 push-go: login build-go
 	@[ "$$ALLOW_GO_PUSH" = "1" ] || { \
-		echo "ERROR: refusing to push the go image — it bakes operator SSH/GPG/PAT"; \
-		echo "       credentials into its filesystem. Publish ONLY to a PRIVATE registry,"; \
-		echo "       then re-run: make push-go ALLOW_GO_PUSH=1"; \
+		echo "ERROR: the go image is local-only by project policy — a personal dev"; \
+		echo "       container layered on the published base+java, not part of the"; \
+		echo "       published set. (It no longer bakes operator credentials; SSH/GPG/PAT"; \
+		echo "       are injected at runtime by 'make run-go'.) To override: make push-go ALLOW_GO_PUSH=1"; \
 		exit 1; }
 	@docker push $(IMAGE_GO_NAME)
 

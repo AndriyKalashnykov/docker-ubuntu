@@ -72,8 +72,9 @@ args — those leak through `docker history`):
 The Makefile builds the `GO_BUILD_SECRETS` list conditionally (`$(wildcard ...)`), so the
 go image builds with whatever subset is present. The go image's scripts read
 `/run/secrets/<id>` and fall back gracefully. NOTE: the go image still *contains* the
-operator's key material in its filesystem by design (a personal dev container) — keep go
-images private; CI does not build go.
+operator's key material in its filesystem by design (a personal dev container). CI does
+not build go, and **`make push-go` is blocked unless `ALLOW_GO_PUSH=1`** (and
+`build-push-all` excludes it) — keep go images on private registries only.
 
 ## Architecture
 

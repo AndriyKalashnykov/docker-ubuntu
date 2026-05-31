@@ -213,8 +213,13 @@ build-go: check-env build-base
 run-go: check-env
 	@docker run --group-add "$$(stat -c '%g' /var/run/docker.sock)" -v /var/run/docker.sock:/var/run/docker.sock -v "$$(pwd)":/home/user/host_launchdir --name docker-ubuntu-go -it --rm $(IMAGE_GO_NAME) bash
 
-#push-go: @ Push go dev image to a registry
+#push-go: @ Push go dev image (BLOCKED by default — bakes operator creds; set ALLOW_GO_PUSH=1)
 push-go: login build-go
+	@[ "$$ALLOW_GO_PUSH" = "1" ] || { \
+		echo "ERROR: refusing to push the go image — it bakes operator SSH/GPG/PAT"; \
+		echo "       credentials into its filesystem. Publish ONLY to a PRIVATE registry,"; \
+		echo "       then re-run: make push-go ALLOW_GO_PUSH=1"; \
+		exit 1; }
 	@docker push $(IMAGE_GO_NAME)
 
 IMAGE_GO_CMD := docker images --filter=reference=$(IMAGE_GO_NAME) --format "{{.ID}}" | awk '{print $$1}'
@@ -240,8 +245,8 @@ endif
 #build-all: @ Build base + go + java images
 build-all: check-env build-base build-go build-java
 
-#build-push-all: @ Build and push all caches and images
-build-push-all: check-env build-base-inline-cache build-base push-base build-go push-go build-java-inline-cache build-java push-java
+#build-push-all: @ Build and push the publishable images (base + java; go is local-only)
+build-push-all: check-env build-base-inline-cache build-base push-base build-java-inline-cache build-java push-java
 
 #cleanup: @ Cleanup docker images, containers, volumes, networks, build cache
 cleanup: delete-go delete-java delete-base

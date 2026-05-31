@@ -8,11 +8,14 @@ SHELL := /bin/bash
 # renovate: datasource=docker depName=ubuntu versioning=ubuntu
 UBUNTU_VERSION := 26.04
 
-ROOT_PWD := Docker!
-USER_UID := 1000
-USER_GID := 1000
-USER_NAME := user
-USER_PWD := user
+# Dev-container identity defaults — non-secret, operator-tunable. `?=` lets the
+# env / command line override them (e.g. `make USER_UID=1001 build-base`).
+ROOT_PWD  ?= Docker!
+USER_UID  ?= 1000
+USER_GID  ?= 1000
+USER_NAME ?= user
+USER_PWD  ?= user
+USER_EMAIL ?= AndriyKalashnykov@gmail.com
 
 # Registry — GitHub Container Registry. Auth uses a GitHub PAT (GITHUB_PAT) with
 # write:packages. REGISTRY_OWNER MUST be lowercase (ghcr requirement).
@@ -87,10 +90,18 @@ login: check-env
 	@[ -n "$$GITHUB_PAT" ] || { echo "ERROR: GITHUB_PAT (write:packages) is required to log in to $(DOCKER_REGISTRY)"; exit 1; }
 	@printf '%s' "$$GITHUB_PAT" | docker login $(DOCKER_REGISTRY) -u $(REGISTRY_OWNER) --password-stdin
 
-#lint: @ Lint Dockerfiles with hadolint
-lint:
+#lint: @ Lint Dockerfiles (hadolint) + verify shell scripts are executable
+lint: lint-scripts-exec
 	@command -v hadolint >/dev/null 2>&1 || { echo "ERROR: hadolint not found. See: https://github.com/hadolint/hadolint"; exit 1; }
 	@hadolint base/Dockerfile java/Dockerfile go/Dockerfile
+
+#lint-scripts-exec: @ Fail if any committed shell script lacks the +x bit
+lint-scripts-exec:
+	@NONEXEC=$$(find base go -name '*.sh' -not -executable -print); \
+		if [ -n "$$NONEXEC" ]; then \
+			echo "ERROR: shell scripts missing +x (run: chmod +x <file>):"; \
+			echo "$$NONEXEC" | sed 's/^/  /'; exit 1; \
+		fi
 
 #ci: @ Run local CI checks (Dockerfile lint + build the base image)
 ci: lint build-base
@@ -207,7 +218,7 @@ CNT_DANGLING     := $(shell $(CNT_DANGLING_CMD) | wc -l)
 
 #build-go: @ Build go dev image (secrets via BuildKit secret mounts)
 build-go: check-env build-base
-	@docker build $(GO_BUILD_SECRETS) --build-arg IMAGE_LABEL=$(IMAGE_GO) --build-arg USER_EMAIL="AndriyKalashnykov@gmail.com" --build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) -t $(IMAGE_GO_NAME) ./go
+	@docker build $(GO_BUILD_SECRETS) --build-arg IMAGE_LABEL=$(IMAGE_GO) --build-arg USER_EMAIL="$(USER_EMAIL)" --build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) -t $(IMAGE_GO_NAME) ./go
 
 #run-go: @ Run go dev image (mounts the docker socket via --group-add, no chmod)
 run-go: check-env
@@ -273,12 +284,15 @@ endif
 
 	@docker builder prune -af
 
+#img: @ Regenerate README screenshots (needs silicon + shutter)
 img:
+	@command -v silicon >/dev/null 2>&1 || { echo "ERROR: silicon not found (cargo install silicon)"; exit 1; }
+	@command -v shutter >/dev/null 2>&1 || { echo "ERROR: shutter not found"; exit 1; }
 	@silicon ./base/Dockerfile -o ./images/ubuntu-base.png --background '#fff0'
-	@silicon Dockerfile -o ./images/ubuntu-java.png --background '#fff0'
+	@silicon ./java/Dockerfile -o ./images/ubuntu-java.png --background '#fff0'
 	@shutter --window=.*Tilix.* -o ./images/terminal.png -e
 
-.PHONY: help check-env login lint ci renovate-validate \
+.PHONY: help check-env login lint lint-scripts-exec ci renovate-validate \
 	build-base-inline-cache build-base run-base push-base delete-base \
 	build-java-inline-cache build-java run-java push-java delete-java \
 	build-go run-go push-go delete-go \

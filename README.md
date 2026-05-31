@@ -1,21 +1,25 @@
 [![CI](https://github.com/AndriyKalashnykov/docker-ubuntu/actions/workflows/main.yml/badge.svg)](https://github.com/AndriyKalashnykov/docker-ubuntu/actions/workflows/main.yml)
-[![Renovate enabled](https://img.shields.io/badge/renovate-enabled-brightgreen.svg)](https://app.renovatebot.com/dashboard#github/AndriyKalashnykov/docker-ubuntu)
-[![Hits](https://hits.sh/github.com/AndriyKalashnykov/docker-ubuntu.svg?style=plastic)](https://hits.sh/github.com/AndriyKalashnykov/docker-ubuntu/)
+[![Hits](https://hits.sh/github.com/AndriyKalashnykov/docker-ubuntu.svg?view=today-total&style=plastic)](https://hits.sh/github.com/AndriyKalashnykov/docker-ubuntu/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT)
+[![Renovate enabled](https://img.shields.io/badge/renovate-enabled-brightgreen.svg)](https://app.renovatebot.com/dashboard#github/AndriyKalashnykov/docker-ubuntu)
 
-# Ubuntu Development Environment (Java and Go Docker images)
+# Ubuntu Dev-Container Images — Reproducible DevOps Toolchain
 
 A layered set of Ubuntu-based development-environment Docker images. A common
 **base** image ships a broad cloud-native / DevOps toolchain (kubectl, helm,
 kustomize, k9s, kind, flux, conftest, opa, Docker-in-Docker, …); the **java**
 and **go** variants build on it with their respective language stacks. Every
-tool version is pinned and reproducible — see [TOOLING.md](./TOOLING.md).
+tool version is pinned and reproducible via **mise** — see [TOOLING.md](./TOOLING.md).
+
+Images are hadolint-linted, Trivy-scanned (filesystem + image), cosign
+keyless-signed with SBOM attestation, and published to GHCR through a
+Renovate-managed GitHub Actions pipeline.
 
 ![make-help](./images/carbon.png)
 
 ## Image hierarchy
 
-```
+```text
 ubuntu:26.04 (LTS)
   └─ docker-ubuntu-base   base + DevOps toolchain (mise-managed) + Docker-in-Docker
        ├─ docker-ubuntu-java   + Java 25 LTS / Maven / Gradle, Google Cloud SDK, Cloud SQL Proxy
@@ -140,14 +144,25 @@ Run `make help` for the authoritative list.
 - **`CI`** ([`main.yml`](./.github/workflows/main.yml)) — builds, scans, signs and
   publishes the **base + java** images to GHCR. Pipeline: `changes`
   (paths-filter) → `static-check` (hadolint + Trivy filesystem scan) → `build`
-  (build → Trivy image scan → tag-gated push with provenance + SBOM → cosign
-  keyless signing) → `ci-pass`. PRs build and scan but do not push/sign. The
-  **go** image is built locally only (it needs operator secrets).
+  (build → Trivy image scan → tag-gated push (`:26.04` + `:latest` + `:sha-…`) →
+  cosign keyless signing by digest → SBOM generation) → `ci-pass` (single required
+  status check). PRs build and scan but do not push/sign. The **go** image is
+  built locally only (it needs operator secrets).
 - **Cleanup runs** ([`cleanup-runs.yml`](./.github/workflows/cleanup-runs.yml))
   — weekly prune of old workflow runs via the `gh` CLI.
 
 Dependency updates are handled by **Renovate** (`renovate.json`): the Ubuntu base
 tag, GitHub Action SHAs, the gcloud/mise `ARG`s, and every mise-pinned tool.
+
+### Verify a published image signature
+
+Images are signed keyless via cosign (Sigstore OIDC). Verify with:
+
+```bash
+cosign verify ghcr.io/andriykalashnykov/docker-ubuntu-base:26.04 \
+  --certificate-identity-regexp 'https://github.com/AndriyKalashnykov/docker-ubuntu/.github/workflows/main.yml@refs/.*' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
 
 ## License
 

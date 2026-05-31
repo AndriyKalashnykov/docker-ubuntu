@@ -1,11 +1,24 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended",
-    ":dependencyDashboard",
-    ":semanticCommits"
+    "config:best-practices",
+    ":semanticCommitType(chore)"
   ],
   "labels": ["dependencies"],
+  "commitMessagePrefix": "chore(all): ",
+  "commitMessageAction": "update",
+  "automerge": true,
+  "platformAutomerge": true,
+  "automergeType": "pr",
+  "automergeStrategy": "squash",
+  "ignoreTests": false,
+  "prConcurrentLimit": 50,
+  "prHourlyLimit": 0,
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "automerge": true,
+    "minimumReleaseAge": "0 days"
+  },
   "packageRules": [
     {
       "description": "Group GitHub Actions digest bumps into a single PR",
@@ -16,6 +29,11 @@
       "description": "Group mise tool bumps per image",
       "matchManagers": ["mise"],
       "groupName": "mise tools"
+    },
+    {
+      "description": "Hold major updates for a 3-day stability buffer before opening a PR",
+      "matchUpdateTypes": ["major"],
+      "minimumReleaseAge": "3 days"
     }
   ],
   "customManagers": [

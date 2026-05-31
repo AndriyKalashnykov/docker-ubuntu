@@ -19,10 +19,14 @@ concurrency:
 jobs:
   changes:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       pull-requests: read
     outputs:
-      images: ${{ steps.filter.outputs.images }}
+      # Tag pushes (v*) have an empty diff vs `main` (same SHA), so paths-filter
+      # returns images=false and static-check/build would skip — a silent no-op
+      # release. Force images=true on tag refs so the publish path always runs.
+      images: ${{ startsWith(github.ref, 'refs/tags/') && 'true' || steps.filter.outputs.images }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -40,11 +44,16 @@ jobs:
 
   static-check:
     needs: changes
-    if: needs.changes.outputs.images == 'true'
+    if: |
+      !failure() && !cancelled() &&
+      needs.changes.outputs.images == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
       - name: Lint Dockerfiles (hadolint)
         uses: hadolint/hadolint-action@2332a7b74a6de0dda2e2221d575162eba76ba5e5 # v3.3.0
         with:
@@ -61,8 +70,11 @@ jobs:
 
   build:
     needs: [changes, static-check]
-    if: needs.changes.outputs.images == 'true'
+    if: |
+      !failure() && !cancelled() &&
+      needs.changes.outputs.images == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: read
       packages: write
@@ -72,6 +84,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
 
       - name: Compute owner and version
         run: |
@@ -89,8 +103,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # Build base then java with plain `docker build` (BuildKit). java's
-      # `FROM ghcr.io/.../docker-ubuntu-base:24.04` resolves the just-built base
-      # from the local image store — no registry pull, so PRs build without auth.
+      # `FROM ghcr.io/.../docker-ubuntu-base:$UBUNTU_VERSION` resolves the just-built
+      # base from the local image store — no registry pull, so PRs build without auth.
       - name: Build base + java images
         run: |
           BASE="${REGISTRY}/${OWNER_LC}/docker-ubuntu-base"
@@ -168,6 +182,7 @@ jobs:
     if: always()
     needs: [changes, static-check, build]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Verify required jobs passed
         run: |

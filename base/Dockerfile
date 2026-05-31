@@ -25,7 +25,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 LABEL stage=$IMAGE_LABEL
 
-# Ubuntu 24.04 ships a stock `ubuntu` user at UID/GID 1000 — remove it before
+# Ubuntu 24.04+ ships a stock `ubuntu` user at UID/GID 1000 — remove it before
 # creating ours so the requested UID/GID is free.
 RUN (userdel -r ubuntu 2>/dev/null || true) \
     && (groupdel ubuntu 2>/dev/null || true) \

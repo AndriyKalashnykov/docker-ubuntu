@@ -49,8 +49,8 @@ The full strategy and the list of what is/ isn't mise-managed is documented in
 
 **All three images build with no host secrets** — the filesystem is credential-free.
 For the **go** image, the operator's credentials are injected **at container start**
-by `make run-go` (never baked into the image): the SSH key pair at
-`~/.ssh/id_rsa{,.pub}`, the GPG key pair at
+by `make run-go` (never baked into the image): an SSH key pair at
+`~/.ssh/id_rsa{,.pub}` or `~/.ssh/id_ed25519{,.pub}`, the GPG key pair at
 `${DOTFILES_DIR}/gnupg/AndriyKalashnykov-secret-gpg.key` + `…-ownertrust-gpg.txt`
 (`DOTFILES_DIR` defaults to `~/projects/dotfiles`), and the `GITHUB_PAT` /
 `MY_GPG_PASSWORD` env vars — each used only if present (otherwise a fresh SSH key is
@@ -72,7 +72,8 @@ make build-go   && make run-go        # go dev image
 
 `run-*` drops you into an interactive `bash` shell with the full toolchain on
 `PATH` (and `JAVA_HOME` / `GOROOT` set by the entrypoint). `run-go` additionally
-bind-mounts the host Docker socket (Docker-out-of-Docker) and the current directory.
+bind-mounts the host Docker socket (Docker-out-of-Docker) and the current directory,
+and injects your SSH/GPG keys + PAT at container start (if present on the host).
 
 ### Run a published image (no build needed)
 
@@ -107,8 +108,9 @@ docker run --rm -it -v "$PWD":/home/user/app -w /home/user/app \
   ghcr.io/andriykalashnykov/docker-ubuntu-java:26.04 bash
 ```
 
-> The **go** image is built locally only (`make build-go`) — it is not published
-> to GHCR because it can carry operator credentials, so build it before running it.
+> The **go** image is built locally only (`make build-go`) — a personal dev container
+> that is local-only by policy (the image itself is credential-free; SSH/GPG/PAT are
+> injected at run time), so build it before running it.
 
 ## Make targets
 

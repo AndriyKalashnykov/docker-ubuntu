@@ -36,8 +36,8 @@ is load-bearing for cleanup, not cosmetic. The registry is forced to `ghcr.io` w
 ## Tool / version management (read TOOLING.md)
 
 **mise is the single tool-version manager.** Every CLI tool is pinned in a per-image
-`.mise.toml` (`base/.mise.toml`, `java/.mise.toml`, `go/.mise.toml`); the base OS tag,
-mise itself, and the Google Cloud SDK are pinned via Dockerfile/Makefile `ARG`s/vars with
+`.mise.toml` (`base/.mise.toml`, `java/.mise.toml`, `go/.mise.toml`); the base OS tag
+(+ pinned digest) and mise itself are pinned via Dockerfile/Makefile `ARG`s/vars with
 `# renovate:` annotations. **[TOOLING.md](./TOOLING.md)** is the authoritative strategy doc.
 Key rules:
 
@@ -137,18 +137,22 @@ agent's prompt.
 
 - **Multi-arch (arm64)** — PREPARED but intentionally DISABLED; builds are `linux/amd64`
   only for now (see the commented scaffold near `build-base` in the Makefile). All
-  asset-level blockers are cleared and a `linux/arm64` base build was confirmed to
-  succeed: gcloud (the one hardcoded `x86_64` asset) and cloud-sql-proxy were removed,
-  the amd64-only `rar` package was swapped for `unrar` (arm64-available; extraction
-  kept, proprietary creation dropped), and every mise-pinned tool has verified arm64
-  builds; `mise.run`, `get.docker.com`, and apt are already arch-aware. To enable later:
-  convert the build to `docker buildx --platform linux/amd64,linux/arm64 --push`
-  (Makefile + CI) with multi-arch cosign/SBOM and a QEMU/native-arm-runner choice.
+  asset-level blockers are cleared and a `linux/arm64` **base** build was confirmed to
+  succeed (the hard part: full apt list + entire mise toolchain): gcloud (the one
+  hardcoded `x86_64` asset) and cloud-sql-proxy were removed, the amd64-only `rar` package
+  was swapped for `unrar` (arm64-available; extraction kept, proprietary creation dropped),
+  and every mise-pinned tool has verified arm64 builds; `mise.run`, `get.docker.com`, and
+  apt are already arch-aware. java/go add only arch-clean layers but are not individually
+  arm64-proven. To enable later: convert the build to `docker buildx --platform
+  linux/amd64,linux/arm64 --push` (Makefile + CI) with multi-arch cosign/SBOM and a
+  QEMU/native-arm-runner choice.
 - **Publish go from CI** — now *unblocked* (the go image is credential-free; see "Secrets"
   above). Still local-only by policy; enabling CI publish would only require adding go to
   the build/push jobs — no secret-surface decision remains.
-
-### Resolved
-- **go image credential surface** — RESOLVED. Operator SSH/GPG/PAT are injected at
-  container start (`go/scripts/entry.sh` from `make run-go` runtime mounts/env), never
-  baked into the image filesystem.
+- **java image SBOM** — `main.yml` generates `sbom-base.spdx.json` for the base image only;
+  the **java** image is published + cosign-signed identically but gets **no SBOM**. Close
+  the asymmetry by mirroring the `Generate SBOM (base)` step for the java image ref. This
+  is an image-hardening change — apply via `/ship-it harden`, not the default pipeline.
+- **go shell-form `ENTRYPOINT`** (`bash -c "… $0 $@"`, DL3025-ignored) mangles complex
+  multi-word `docker run … <cmd>` invocations; `make run-go` (bare `bash`) is unaffected.
+  Latent ergonomics wart, not a bug.

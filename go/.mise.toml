@@ -9,8 +9,7 @@ go          = "1.26.3"        # current stable (was 1.18.2, EOL)
 kubebuilder = "4.14.0"
 
 # Prebuilt binaries via aqua (fast, no compile).
-"aqua:GoogleCloudPlatform/cloud-sql-proxy" = "2.22.0"
-"aqua:goreleaser/goreleaser"               = "2.16.0"
+"aqua:goreleaser/goreleaser" = "2.16.0"
 
 # Go dev CLIs via the mise `go:` backend — pinned, reproducible (vs `go install @latest`).
 # Dropped from the old toolchain script as obsolete/removed-from-upstream:

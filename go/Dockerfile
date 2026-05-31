@@ -13,11 +13,6 @@ ARG USER_PWD="user"
 ARG USER_EMAIL="user@test.com"
 ARG IMAGE_LABEL="docker-ubuntu-go"
 
-# Google Cloud SDK — official versioned installer (multi-component SDK, not a
-# single mise-managed binary). Pinned for reproducibility.
-# renovate: datasource=docker depName=google/cloud-sdk
-ARG GCLOUD_VERSION="570.0.0"
-
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TERM=xterm
 ENV TZ=America/New_York
@@ -51,17 +46,10 @@ RUN git lfs install \
     && chmod 644 /home/$USER_NAME/.ssh/config /home/$USER_NAME/.ssh/known_hosts \
     && echo -e "\nexport TERM=$TERM" >> /home/$USER_NAME/.bashrc
 
-# Go toolchain + Go dev CLIs + kubebuilder + goreleaser + cloud-sql-proxy via mise.
+# Go toolchain + Go dev CLIs + kubebuilder + goreleaser via mise.
 # Merges on top of the base image's global mise config (full base toolset inherited).
 COPY --chown=$USER_UID:$USER_GID .mise.toml /home/$USER_NAME/.mise.toml
 RUN mise trust /home/$USER_NAME/.mise.toml && mise install --yes && mise reshim
-
-# Google Cloud SDK — pinned official installer.
-RUN curl -fsSL --retry 3 --retry-delay 5 --retry-all-errors --connect-timeout 30 "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz" -o /tmp/gcloud.tgz \
-    && sudo tar -xzf /tmp/gcloud.tgz -C /opt \
-    && sudo /opt/google-cloud-sdk/install.sh --quiet --path-update false \
-    && rm -f /tmp/gcloud.tgz
-ENV PATH="/opt/google-cloud-sdk/bin:$PATH"
 
 CMD ["/bin/bash"]
 ENTRYPOINT bash -c "source $HOME/scripts/entry.sh && $0 $@"

@@ -125,7 +125,6 @@ jobs:
           image-ref: ${{ env.REGISTRY }}/${{ env.OWNER_LC }}/docker-ubuntu-base:${{ env.UBUNTU_VERSION }}
           vuln-type: os
           scanners: vuln,secret
-          skip-dirs: '**/google-cloud-sdk/platform/gsutil/third_party'
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '1'
@@ -136,7 +135,6 @@ jobs:
           image-ref: ${{ env.REGISTRY }}/${{ env.OWNER_LC }}/docker-ubuntu-java:${{ env.UBUNTU_VERSION }}
           vuln-type: os
           scanners: vuln,secret
-          skip-dirs: '**/google-cloud-sdk/platform/gsutil/third_party'
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '1'

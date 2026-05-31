@@ -7,6 +7,3 @@
 java   = "temurin-25.0.3+9.0.LTS"   # current LTS (was SDKMAN 18.0.1-tem, EOL)
 maven  = "3.9.16"
 gradle = "9.5.1"
-
-# Cloud SQL Proxy (single binary; gcloud SDK itself stays on its official installer).
-"aqua:GoogleCloudPlatform/cloud-sql-proxy" = "2.22.0"

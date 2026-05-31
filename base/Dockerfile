@@ -50,7 +50,7 @@ RUN (userdel -r ubuntu 2>/dev/null || true) \
 # so psql is preserved; it is a Depends, not a Recommends).
 RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-transport-https ca-certificates apt-utils software-properties-common curl wget lsb-release sudo locales xclip xsel bash-completion \
-    vim nano zip unzip rar openssl ssh openssh-client tree git gitg git-lfs graphviz \
+    vim nano zip unzip unrar openssl ssh openssh-client tree git gitg git-lfs graphviz \
     gnupg gnupg2 net-tools jq httpie htop nmon iputils-ping html-xml-utils libxml2-utils xmlstarlet libnss3-tools slirp4netns \
     xdotool buildah podman skopeo postgresql-client make gcc python3-dev python3-pip python3-crcmod \
     && apt-get autoremove -y \

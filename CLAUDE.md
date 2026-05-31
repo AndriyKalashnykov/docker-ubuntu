@@ -50,10 +50,10 @@ Key rules:
   variant inherits the full base toolset.
 - `entry.sh` runs `mise activate --shims` + `mise env` at container start, so tool env
   (`JAVA_HOME`, `GOROOT`, …) is set in interactive AND non-interactive shells.
-- Backends in use: core (kubectl, helm, go, java, …), `aqua:` (vivid, cloud-sql-proxy,
-  goreleaser), `github:` (s2i — not in the aqua registry; needs `exe = "s2i"`), `go:`
-  (Go dev CLIs). Non-mise tools (apt packages, docker-engine, the multi-component gcloud
-  SDK) stay on apt / official pinned installers — see TOOLING.md for the why.
+- Backends in use: core (kubectl, helm, go, java, …), `aqua:` (vivid, goreleaser),
+  `github:` (s2i — not in the aqua registry; needs `exe = "s2i"`), `go:`
+  (Go dev CLIs). Non-mise tools (apt packages, docker-engine) stay on apt / the official
+  pinned installer — see TOOLING.md for the why.
 
 ## Secrets (runtime injection, not baked into the image)
 
@@ -83,8 +83,8 @@ Three independent build contexts, one per image, layered by `FROM`:
 ```
 ubuntu:26.04 (UBUNTU_VERSION)
   └─ base/   → docker-ubuntu-base   (apt dev tools, Docker-in-Docker, mise + base toolchain)
-       ├─ java/ → docker-ubuntu-java (Java 25 LTS / Maven / Gradle via mise, GCloud SDK, Cloud SQL Proxy)
-       └─ go/   → docker-ubuntu-go   (Go 1.26 toolchain & CLIs via mise, kubebuilder, GPG, PostgreSQL, GCloud SDK)
+       ├─ java/ → docker-ubuntu-java (Java 25 LTS / Maven / Gradle via mise)
+       └─ go/   → docker-ubuntu-go   (Go 1.26 toolchain & CLIs via mise, kubebuilder, GPG, PostgreSQL)
 ```
 
 Each `<context>/` directory holds: a `Dockerfile`, a pinned `.mise.toml`, and a small
@@ -103,13 +103,10 @@ image. The old `install-*.sh` tool-fetch scripts were removed when mise took ove
   `FROM ghcr.io/andriykalashnykov/docker-ubuntu-base:$UBUNTU_VERSION`. The Makefile's
   `build-java`/`build-go` depend on `build-base` to produce that tag locally; otherwise
   they pull the published base from GHCR.
-- **Version pins**: only `UBUNTU_VERSION` (Makefile, passed `--build-arg`), `MISE_VERSION`
-  and `GCLOUD_VERSION` (Dockerfile `ARG`s) live outside mise. Java/Maven/Go and every other
+- **Version pins**: only `UBUNTU_VERSION` (Makefile, passed `--build-arg`) and
+  `MISE_VERSION` (base Dockerfile `ARG`) live outside mise. Java/Maven/Go and every other
   tool version live in the `.mise.toml` files — do NOT add language version vars back to
   the Makefile.
-- **gcloud download resilience**: the gcloud `curl` uses `--retry 3 --retry-delay 5
-  --retry-all-errors --connect-timeout 30` (the ~150 MB tarball can time out under
-  parallel java+go builds).
 - **Reproducible caching**: pinned tools make builds reproducible, so the old `random.org`
   cache-busting `ADD`s were removed; `build-*-inline-cache` targets push a `-cache` tag.
 
@@ -121,7 +118,7 @@ to GHCR** (the go image is local-only — it needs operator secrets). Jobs: `cha
 scan → tag-gated push → cosign keyless signing by digest → SBOM (base)) → `ci-pass` aggregator.
 Push happens on `push`/tag events only (PRs build+scan but don't push/sign).
 `cleanup-runs.yml` prunes old runs via `gh`. Renovate (`renovate.json`) updates the Ubuntu
-tag, Action SHAs, gcloud/mise ARGs, and every mise-pinned tool.
+tag (+ its pinned digest), Action SHAs, the mise ARG, and every mise-pinned tool.
 
 ## Skills
 
@@ -138,8 +135,15 @@ agent's prompt.
 
 ## Improvement Backlog
 
-- **Multi-arch** — images build `linux/amd64` only; add `linux/arm64` for Apple Silicon /
-  Graviton (gcloud + some mise tools need arch-aware asset selection).
+- **Multi-arch (arm64)** — PREPARED but intentionally DISABLED; builds are `linux/amd64`
+  only for now (see the commented scaffold near `build-base` in the Makefile). All
+  asset-level blockers are cleared and a `linux/arm64` base build was confirmed to
+  succeed: gcloud (the one hardcoded `x86_64` asset) and cloud-sql-proxy were removed,
+  the amd64-only `rar` package was swapped for `unrar` (arm64-available; extraction
+  kept, proprietary creation dropped), and every mise-pinned tool has verified arm64
+  builds; `mise.run`, `get.docker.com`, and apt are already arch-aware. To enable later:
+  convert the build to `docker buildx --platform linux/amd64,linux/arm64 --push`
+  (Makefile + CI) with multi-arch cosign/SBOM and a QEMU/native-arm-runner choice.
 - **Publish go from CI** — now *unblocked* (the go image is credential-free; see "Secrets"
   above). Still local-only by policy; enabling CI publish would only require adding go to
   the build/push jobs — no secret-surface decision remains.

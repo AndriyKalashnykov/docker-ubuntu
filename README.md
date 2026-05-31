@@ -57,11 +57,53 @@ export GITHUB_PAT=<github-pat-with-write:packages>   # for `make login` / push t
 
 ## Quick start
 
+### Build and run the images locally
+
 ```bash
 make build-base && make run-base      # base image
 make build-java && make run-java      # java dev image
 make build-go   && make run-go        # go dev image
 ```
+
+`run-*` drops you into an interactive `bash` shell with the full toolchain on
+`PATH` (and `JAVA_HOME` / `GOROOT` set by the entrypoint). `run-go` additionally
+bind-mounts the host Docker socket (Docker-out-of-Docker) and the current directory.
+
+### Run a published image (no build needed)
+
+The `base` and `java` images are published to GHCR — pull and run directly:
+
+```bash
+docker run -it --rm ghcr.io/andriykalashnykov/docker-ubuntu-base:24.04 bash
+docker run -it --rm ghcr.io/andriykalashnykov/docker-ubuntu-java:24.04 bash
+```
+
+### Build a Java or Go app inside the container
+
+Mount your project and run the toolchain. The entrypoint activates mise, so
+`java`/`mvn`/`gradle`/`go` and `JAVA_HOME`/`GOROOT` are ready:
+
+```bash
+# Java (image ships Java 25 LTS, Maven 3.9, Gradle 9)
+docker run --rm -it -v "$PWD":/home/user/app -w /home/user/app \
+  ghcr.io/andriykalashnykov/docker-ubuntu-java:24.04 mvn -B package
+docker run --rm -it -v "$PWD":/home/user/app -w /home/user/app \
+  ghcr.io/andriykalashnykov/docker-ubuntu-java:24.04 gradle build
+
+# Go (image ships Go 1.26 + dlv, goreleaser, swag, goose, …) — build go locally first
+make build-go
+docker run --rm -it -v "$PWD":/home/user/app -w /home/user/app \
+  ghcr.io/andriykalashnykov/docker-ubuntu-go:24.04 go build ./...
+docker run --rm -it -v "$PWD":/home/user/app -w /home/user/app \
+  ghcr.io/andriykalashnykov/docker-ubuntu-go:24.04 go test ./...
+
+# …or open an interactive shell with your project mounted and work normally:
+docker run --rm -it -v "$PWD":/home/user/app -w /home/user/app \
+  ghcr.io/andriykalashnykov/docker-ubuntu-java:24.04 bash
+```
+
+> The **go** image is built locally only (`make build-go`) — it is not published
+> to GHCR because it can carry operator credentials, so build it before running it.
 
 ## Make targets
 

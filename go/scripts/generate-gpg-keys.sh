@@ -1,56 +1,24 @@
 #!/bin/bash
-
-# set -x
-
-LAUNCH_DIR=$(pwd); SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; cd $SCRIPT_DIR; cd ..; SCRIPT_PARENT_DIR=$(pwd);
-. $SCRIPT_DIR/set-env.sh
+#
+# Import GPG key material provided as BuildKit secret mounts:
+#   /run/secrets/gpg_secret      — the secret key (raw, ASCII-armored or binary)
+#   /run/secrets/gpg_ownertrust  — the ownertrust export
+#   /run/secrets/gpg_pwd         — the key passphrase
+# If any is missing, the import is skipped. No key material is ever a build arg.
 
 USER_NAME=${1:-user}
-GPG_SECRET=${2:-}
-GPG_OWNER_TRUST=${3:-}
-GPG_PwD=${4:-}
 
-cd $SCRIPT_DIR
-
-# echo "USER_NAME: ${USER_NAME}"
-# echo "GPG_SECRET: ${GPG_SECRET}"
-# echo "GPG_OWNER_TRUST: ${GPG_OWNER_TRUST}"
-# echo "GPG_PwD: ${GPG_PwD}"
-
-# https://www.cyberciti.biz/faq/unix-linux-bash-script-check-if-variable-is-empty/
-if [[ -n "${GPG_SECRET}" && -n "${GPG_PwD}" && -n "${GPG_OWNER_TRUST}" ]]; then
-    
+if [ -s /run/secrets/gpg_secret ] && [ -s /run/secrets/gpg_pwd ] && [ -s /run/secrets/gpg_ownertrust ]; then
     echo "Importing provided GPG keys..."
+    GPG_PWD="$(cat /run/secrets/gpg_pwd)"
 
-    mkdir -p /home/$USER_NAME/.gpg
+    # https://unix.stackexchange.com/questions/60213/gpg-asks-for-password-even-with-passphrase
+    echo "$GPG_PWD" | gpg --batch --yes --passphrase-fd 0 --import /run/secrets/gpg_secret
+    gpg --import-ownertrust /run/secrets/gpg_ownertrust
 
-    # Save provided keys
-    echo "${GPG_OWNER_TRUST}" | base64 --decode > /home/$USER_NAME/.gpg/ownertrust-gpg.txt
-    echo "${GPG_SECRET}" | base64 --decode > /home/$USER_NAME/.gpg/secret-gpg.key
-
-    # Import provided keys
-    # https://unix.stackexchange.com/questions/60213/gpg-asks-for-password-even-with-passphrase/68726#68726
-    echo "${GPG_PwD}" | gpg --batch --yes --passphrase-fd 0 --import /home/$USER_NAME/.gpg/secret-gpg.key
-    gpg --import-ownertrust /home/$USER_NAME/.gpg/ownertrust-gpg.txt
-    
-    # https://github.com/ci-and-cd/maven-build/blob/34be4660e3912eeeb2d27762a8993c1110001620/src/main/ci-script/lib_ci.sh#L240
-    # List imported keys
     gpg --batch=true --version
-    gpg --list-secret-keys --keyid-format=long
-    gpg --export-ownertrust
-
-    # stty -echo; echo "${GPG_PwD}" | echo "test" | gpg --passphrase-fd 0 --pinentry-mode loopback --clearsign; stty echo;
-    # export GPG_OPTS='--pinentry-mode loopback'
-    # GPG_TTY=$(tty || echo "")
-    # export GPG_TTY=$(tty)
-    # if [[ -z "${GPG_TTY}" ]]; then unset GPG_TTY; fi
-    # echo "gpg tty '${GPG_TTY}'"
-    # echo "test" | gpg --clearsign
-    # gpg --status-fd=2 -bsau D1FAA03AF6F5F048
-
-    # Congigure git to use GPG: ~/.gitconfig
-    # git config --global user.signingkey D1FAA03AF6F5F048
-    # git config --global commit.gpgsign true
+    gpg --list-secret-keys --keyid-format=long || true
+    gpg --export-ownertrust || true
+else
+    echo "GPG key material not provided — skipping GPG import."
 fi
-
-cd $LAUNCH_DIR

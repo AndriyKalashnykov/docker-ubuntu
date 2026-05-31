@@ -1,0 +1,12 @@
+# Tool versions for the docker-ubuntu JAVA image (FROM docker-ubuntu-base).
+# Installed as a LOCAL config at ~/.mise.toml, merged on top of the base image's
+# global mise config — so this image has the full base toolset PLUS the JVM stack.
+# Pinned + Renovate-tracked (`mise` manager). Replaces the old SDKMAN install.
+
+[tools]
+java   = "temurin-25.0.3+9.0.LTS"   # current LTS (was SDKMAN 18.0.1-tem, EOL)
+maven  = "3.9.16"
+gradle = "9.5.1"
+
+# Cloud SQL Proxy (single binary; gcloud SDK itself stays on its official installer).
+"aqua:GoogleCloudPlatform/cloud-sql-proxy" = "2.22.0"

@@ -1,0 +1,36 @@
+# Tool versions for the docker-ubuntu BASE image — the foundation every variant
+# inherits. Single source of truth: pinned + reproducible + Renovate-tracked
+# (Renovate's native `mise` manager reads this file). `mise install` consumes it
+# at image build time. Bump a version HERE, never in a shell script.
+#
+# This file is installed as the mise GLOBAL config (~/.config/mise/config.toml)
+# so every downstream image (java, go) inherits these tools and merges its own
+# ~/.mise.toml on top.
+
+[tools]
+# Kubernetes / cluster tooling
+kubectl   = "1.36.1"
+helm      = "4.2.0"
+kustomize = "5.8.1"
+k9s       = "0.50.18"
+kind      = "0.31.0"
+kubectx   = "0.11.0"
+kubens    = "0.11.0"
+flux2     = "2.8.8"
+
+# Policy / build / supply-chain
+conftest  = "0.68.2"
+opa       = "1.17.0"
+pack      = "0.40.6"          # Cloud Native Buildpacks (buildpacks/pack)
+ytt       = "0.55.0"          # Carvel ytt
+skaffold  = "2.21.0"
+"github:openshift/source-to-image" = { version = "1.6.1", exe = "s2i" }   # s2i (not in aqua registry)
+
+# Misc
+yq        = "4.53.2"
+hugo      = "0.162.1"
+"aqua:sharkdp/vivid" = "0.11.1"              # LS_COLORS generator
+
+[settings]
+# Allow the aqua/github/go backends used here and in the java/go variant configs.
+experimental = true

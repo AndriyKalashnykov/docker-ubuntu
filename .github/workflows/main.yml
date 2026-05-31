@@ -1,7 +1,7 @@
-# This workflow will build a Java project with Maven
-# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+# Builds, scans, signs and publishes the docker-ubuntu base + java images to GHCR.
+# The go image is built locally only (it needs operator GPG/PAT secrets).
 
-name: main
+name: CI
 
 on:
   push:
@@ -11,74 +11,226 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      images: ${{ steps.filter.outputs.images }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Filter paths
+        id: filter
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4
+        with:
+          base: ${{ github.event_name == 'push' && 'main' || '' }}
+          filters: |
+            images:
+              - 'base/**'
+              - 'java/**'
+              - '.hadolint.yaml'
+              - '.github/workflows/main.yml'
+
+  static-check:
+    needs: changes
+    if: needs.changes.outputs.images == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Lint Dockerfiles (hadolint)
+        uses: hadolint/hadolint-action@2332a7b74a6de0dda2e2221d575162eba76ba5e5 # v3.3.0
+        with:
+          recursive: true
+          config: .hadolint.yaml
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
 
   build:
-
+    needs: [changes, static-check]
+    if: needs.changes.outputs.images == 'true'
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      packages: write
+      id-token: write   # cosign keyless signing
     env:
-      GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
-
+      REGISTRY: ghcr.io
     steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
-    - name: Checkout
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      with:
-        fetch-depth: 0
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4
 
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
+      - name: Compute owner and version
+        run: |
+          echo "OWNER_LC=${OWNER,,}" >> "$GITHUB_ENV"
+          echo "UBUNTU_VERSION=$(awk -F':= ' '/^UBUNTU_VERSION/{print $2}' Makefile)" >> "$GITHUB_ENV"
+        env:
+          OWNER: ${{ github.repository_owner }}
 
-    - name: Cache Docker layers
-      uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
-      with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Convert owner to lower case
-      run: |
-        echo "OWNER_LC=${OWNER,,}" >>${GITHUB_ENV}
-      env:
-        OWNER: '${{ github.repository_owner }}'
+      # --- base image ---
+      - name: Docker metadata (base)
+        id: meta_base
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.OWNER_LC }}/docker-ubuntu-base
+          flavor: latest=true
+          tags: |
+            type=raw,value=${{ env.UBUNTU_VERSION }}
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=sha
 
-    - name: Login to image repository
-      uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build base (load locally)
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
+        with:
+          context: ./base
+          file: ./base/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: ${{ steps.meta_base.outputs.tags }}
+          labels: ${{ steps.meta_base.outputs.labels }}
+          build-args: UBUNTU_VERSION=${{ env.UBUNTU_VERSION }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-    - name: Docker meta
-      id: meta
-      uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6
-      with:
-        images: ghcr.io/${{ env.OWNER_LC }}/docker-ubuntu-base
-        flavor: latest=true
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=semver,pattern={{version}}
+      - name: Trivy image scan (base)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.OWNER_LC }}/docker-ubuntu-base:${{ env.UBUNTU_VERSION }}
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
 
-    - name: Build and push Ubuntu base image
-      uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
-      with:
-        context: ./base/
-        file: ./base/Dockerfile
-        platforms: linux/amd64
-        push: false
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=local,src=/tmp/.buildx-cache
-        cache-to: type=local,dest=/tmp/.buildx-cache
+      - name: Push base
+        id: push_base
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
+        with:
+          context: ./base
+          file: ./base/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta_base.outputs.tags }}
+          labels: ${{ steps.meta_base.outputs.labels }}
+          build-args: UBUNTU_VERSION=${{ env.UBUNTU_VERSION }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # --- java image (FROM the base built above) ---
+      - name: Docker metadata (java)
+        id: meta_java
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.OWNER_LC }}/docker-ubuntu-java
+          flavor: latest=true
+          tags: |
+            type=raw,value=${{ env.UBUNTU_VERSION }}
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=sha
+
+      - name: Build java (load locally)
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
+        with:
+          context: ./java
+          file: ./java/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: ${{ steps.meta_java.outputs.tags }}
+          labels: ${{ steps.meta_java.outputs.labels }}
+          build-args: UBUNTU_VERSION=${{ env.UBUNTU_VERSION }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Trivy image scan (java)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.OWNER_LC }}/docker-ubuntu-java:${{ env.UBUNTU_VERSION }}
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+
+      - name: Push java
+        id: push_java
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
+        with:
+          context: ./java
+          file: ./java/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta_java.outputs.tags }}
+          labels: ${{ steps.meta_java.outputs.labels }}
+          build-args: UBUNTU_VERSION=${{ env.UBUNTU_VERSION }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # --- supply-chain: SBOM artifact + cosign signing (push events only) ---
+      - name: Install cosign
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Sign base + java by digest (keyless)
+        if: github.event_name != 'pull_request'
+        env:
+          DIGEST_BASE: ${{ steps.push_base.outputs.digest }}
+          DIGEST_JAVA: ${{ steps.push_java.outputs.digest }}
+        run: |
+          cosign sign --yes "${REGISTRY}/${OWNER_LC}/docker-ubuntu-base@${DIGEST_BASE}"
+          cosign sign --yes "${REGISTRY}/${OWNER_LC}/docker-ubuntu-java@${DIGEST_JAVA}"
+
+      - name: Generate SBOM artifacts
+        if: github.event_name != 'pull_request'
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          image: ${{ env.REGISTRY }}/${{ env.OWNER_LC }}/docker-ubuntu-base:${{ env.UBUNTU_VERSION }}
+          format: spdx-json
+          artifact-name: sbom-base.spdx.json
+
+  ci-pass:
+    # Single required status check for branch protection / rulesets.
+    if: always()
+    needs: [changes, static-check, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required jobs passed
+        run: |
+          results='${{ needs.changes.result }} ${{ needs.static-check.result }} ${{ needs.build.result }}'
+          echo "results: $results"
+          for r in $results; do
+            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
+              echo "A required job did not pass."; exit 1
+            fi
+          done
+          echo "All required jobs passed (or were skipped)."

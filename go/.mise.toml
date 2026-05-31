@@ -1,0 +1,24 @@
+# Tool versions for the docker-ubuntu GO image (FROM docker-ubuntu-base).
+# Installed as a LOCAL config at ~/.mise.toml, merged on top of the base image's
+# global mise config — full base toolset PLUS the Go stack and CLIs.
+# Pinned + Renovate-tracked (`mise` manager + Renovate's gomod/go-backend support).
+# Replaces install-go-toolchain.sh and its `go install ...@latest` calls.
+
+[tools]
+go          = "1.26.3"        # current stable (was 1.18.2, EOL)
+kubebuilder = "4.14.0"
+
+# Prebuilt binaries via aqua (fast, no compile).
+"aqua:GoogleCloudPlatform/cloud-sql-proxy" = "2.22.0"
+"aqua:goreleaser/goreleaser"               = "2.16.0"
+
+# Go dev CLIs via the mise `go:` backend — pinned, reproducible (vs `go install @latest`).
+# Dropped from the old toolchain script as obsolete/removed-from-upstream:
+#   benchcmp, cover, eg, gotype, gorename, gomvpkg (x/tools removals), duffle (archived),
+#   godoc (deprecated upstream — superseded by `go doc` / pkgsite).
+"go:github.com/go-delve/delve/cmd/dlv"               = "1.26.3"
+"go:github.com/mgechev/revive"                       = "1.15.0"
+"go:github.com/swaggo/swag/cmd/swag"                 = "1.16.6"
+"go:github.com/pressly/goose/v3/cmd/goose"           = "3.27.1"
+"go:github.com/jfeliu007/goplantuml/cmd/goplantuml"  = "1.6.3"
+"go:golang.org/x/tools/cmd/goimports"                = "0.45.0"

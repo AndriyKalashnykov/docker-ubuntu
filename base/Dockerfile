@@ -1,7 +1,7 @@
 # https://hub.docker.com/_/ubuntu/
 
 # renovate: datasource=docker depName=ubuntu versioning=ubuntu
-ARG UBUNTU_VERSION="24.04"
+ARG UBUNTU_VERSION="26.04"
 
 FROM ubuntu:$UBUNTU_VERSION
 
@@ -43,7 +43,7 @@ RUN apt-get install -y ca-certificates apt-utils software-properties-common curl
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/cache/apt \
     && rm -f /etc/ssh/ssh_host_* \
-    && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
+    && localedef -i en_US -c -f UTF-8 en_US.UTF-8
 
 # Docker-in-Docker via the official convenience script.
 # https://devopscube.com/run-docker-in-docker/

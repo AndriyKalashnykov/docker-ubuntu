@@ -3,7 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 Docker Ubuntu base image plus Java and Go development-environment variants, built on
-**Ubuntu 24.04 LTS**. Each image bundles a broad cloud-native / DevOps toolchain for use
+**Ubuntu 26.04 LTS**. Each image bundles a broad cloud-native / DevOps toolchain for use
 as a disposable dev container. All CLI tool versions are pinned and managed by **mise**.
 Images publish to **GHCR** (`ghcr.io/andriykalashnykov/...`).
 
@@ -81,7 +81,7 @@ not build go, and **`make push-go` is blocked unless `ALLOW_GO_PUSH=1`** (and
 Three independent build contexts, one per image, layered by `FROM`:
 
 ```
-ubuntu:24.04 (UBUNTU_VERSION)
+ubuntu:26.04 (UBUNTU_VERSION)
   └─ base/   → docker-ubuntu-base   (apt dev tools, Docker-in-Docker, mise + base toolchain)
        ├─ java/ → docker-ubuntu-java (Java 25 LTS / Maven / Gradle via mise, GCloud SDK, Cloud SQL Proxy)
        └─ go/   → docker-ubuntu-go   (Go toolchain & CLIs via mise, kubebuilder, GPG, PostgreSQL, GCloud SDK)

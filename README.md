@@ -16,7 +16,7 @@ tool version is pinned and reproducible — see [TOOLING.md](./TOOLING.md).
 ## Image hierarchy
 
 ```
-ubuntu:24.04 (LTS)
+ubuntu:26.04 (LTS)
   └─ docker-ubuntu-base   base + DevOps toolchain (mise-managed) + Docker-in-Docker
        ├─ docker-ubuntu-java   + Java 25 LTS / Maven / Gradle, Google Cloud SDK, Cloud SQL Proxy
        └─ docker-ubuntu-go     + Go toolchain & dev CLIs, kubebuilder, goreleaser,
@@ -74,8 +74,8 @@ bind-mounts the host Docker socket (Docker-out-of-Docker) and the current direct
 The `base` and `java` images are published to GHCR — pull and run directly:
 
 ```bash
-docker run -it --rm ghcr.io/andriykalashnykov/docker-ubuntu-base:24.04 bash
-docker run -it --rm ghcr.io/andriykalashnykov/docker-ubuntu-java:24.04 bash
+docker run -it --rm ghcr.io/andriykalashnykov/docker-ubuntu-base:26.04 bash
+docker run -it --rm ghcr.io/andriykalashnykov/docker-ubuntu-java:26.04 bash
 ```
 
 ### Build a Java or Go app inside the container
@@ -86,20 +86,20 @@ Mount your project and run the toolchain. The entrypoint activates mise, so
 ```bash
 # Java (image ships Java 25 LTS, Maven 3.9, Gradle 9)
 docker run --rm -it -v "$PWD":/home/user/app -w /home/user/app \
-  ghcr.io/andriykalashnykov/docker-ubuntu-java:24.04 mvn -B package
+  ghcr.io/andriykalashnykov/docker-ubuntu-java:26.04 mvn -B package
 docker run --rm -it -v "$PWD":/home/user/app -w /home/user/app \
-  ghcr.io/andriykalashnykov/docker-ubuntu-java:24.04 gradle build
+  ghcr.io/andriykalashnykov/docker-ubuntu-java:26.04 gradle build
 
 # Go (image ships Go 1.26 + dlv, goreleaser, swag, goose, …) — build go locally first
 make build-go
 docker run --rm -it -v "$PWD":/home/user/app -w /home/user/app \
-  ghcr.io/andriykalashnykov/docker-ubuntu-go:24.04 go build ./...
+  ghcr.io/andriykalashnykov/docker-ubuntu-go:26.04 go build ./...
 docker run --rm -it -v "$PWD":/home/user/app -w /home/user/app \
-  ghcr.io/andriykalashnykov/docker-ubuntu-go:24.04 go test ./...
+  ghcr.io/andriykalashnykov/docker-ubuntu-go:26.04 go test ./...
 
 # …or open an interactive shell with your project mounted and work normally:
 docker run --rm -it -v "$PWD":/home/user/app -w /home/user/app \
-  ghcr.io/andriykalashnykov/docker-ubuntu-java:24.04 bash
+  ghcr.io/andriykalashnykov/docker-ubuntu-java:26.04 bash
 ```
 
 > The **go** image is built locally only (`make build-go`) — it is not published

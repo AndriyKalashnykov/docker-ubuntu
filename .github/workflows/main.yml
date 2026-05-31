@@ -120,10 +120,17 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # Gate on OS-package CVEs (apt-controlled) + secret scanning. The pinned-
+      # latest third-party CLI tool binaries carry their own upstream transitive
+      # Go-dep CVEs that aren't fixable at image-build time, so vuln scanning is
+      # scoped to `os` (secret scanning still runs and IS gating).
       - name: Trivy image scan (base)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.OWNER_LC }}/docker-ubuntu-base:${{ env.UBUNTU_VERSION }}
+          vuln-type: os
+          scanners: vuln,secret
+          skip-dirs: '**/google-cloud-sdk/platform/gsutil/third_party'
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '1'
@@ -175,6 +182,9 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.OWNER_LC }}/docker-ubuntu-java:${{ env.UBUNTU_VERSION }}
+          vuln-type: os
+          scanners: vuln,secret
+          skip-dirs: '**/google-cloud-sdk/platform/gsutil/third_party'
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '1'

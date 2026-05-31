@@ -42,6 +42,7 @@ RUN apt-get install -y ca-certificates apt-utils software-properties-common curl
     && apt-get autoclean \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/cache/apt \
+    && rm -f /etc/ssh/ssh_host_* \
     && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
 # Docker-in-Docker via the official convenience script.
@@ -52,7 +53,10 @@ RUN echo "$USER_NAME:$USER_PWD" | chpasswd && usermod -aG sudo $USER_NAME && mkd
 
 COPY ./scripts/ /home/$USER_NAME/scripts
 
-RUN ssh-keygen -t rsa -b 4096 -N '' -C $USER_EMAIL -f /home/$USER_NAME/.ssh/id_rsa
+# NOTE: no SSH key is generated at build time — baking a private key into a
+# published image ships the same "private" key to everyone who pulls it (and
+# Trivy flags it). A per-container key is generated at runtime by scripts/entry.sh
+# if none is mounted.
 
 RUN echo 'root:${ROOT_PWD}' | chpasswd
 

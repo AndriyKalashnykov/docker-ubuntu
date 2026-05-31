@@ -12,4 +12,11 @@ if command -v mise >/dev/null 2>&1; then
     eval "$(mise env -s bash 2>/dev/null)"
 fi
 
+# Generate a per-container SSH key on first run if none is present/mounted.
+# No key is baked into the image (see base/Dockerfile).
+if [ ! -f "$HOME/.ssh/id_rsa" ]; then
+    mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+    ssh-keygen -q -t rsa -b 4096 -N '' -C "${USER_EMAIL:-user@localhost}" -f "$HOME/.ssh/id_rsa" 2>/dev/null || true
+fi
+
 lsb_release -a 2>/dev/null || true

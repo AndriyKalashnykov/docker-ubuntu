@@ -27,14 +27,15 @@ USER $USER_NAME
 SHELL ["/bin/bash", "-c"]
 WORKDIR /home/$USER_NAME
 
+# git config + github known_hosts/ssh config. No private key is baked — the
+# IdentityFile is generated per-container at runtime (base scripts/entry.sh) or
+# mounted by the operator.
 RUN git config --global user.name $USER_NAME \
     && git config --global user.email $USER_EMAIL \
-    && cat /home/$USER_NAME/.ssh/id_rsa.pub >> /home/$USER_NAME/.ssh/authorized_keys \
-    && chmod 755 /home/$USER_NAME/.ssh \
-    && chmod 600 /home/$USER_NAME/.ssh/authorized_keys /home/$USER_NAME/.ssh/id_rsa \
-    && chmod 644 /home/$USER_NAME/.ssh/id_rsa.pub \
+    && mkdir -p /home/$USER_NAME/.ssh \
     && ssh-keyscan -H github.com > /home/$USER_NAME/.ssh/known_hosts \
     && printf 'Host github.com\n\tStrictHostKeyChecking no\n\tIdentityFile /home/%s/.ssh/id_rsa\n\tUpdateHostKeys yes\n' "$USER_NAME" >> /home/$USER_NAME/.ssh/config \
+    && chmod 700 /home/$USER_NAME/.ssh \
     && chmod 644 /home/$USER_NAME/.ssh/config /home/$USER_NAME/.ssh/known_hosts
 
 # JVM stack (java/maven/gradle) + cloud-sql-proxy via mise — replaces SDKMAN.

@@ -15,7 +15,38 @@ Images are hadolint-linted, Trivy-scanned (filesystem + image), cosign
 keyless-signed with SBOM attestation, and published to GHCR through a
 Renovate-managed GitHub Actions pipeline.
 
-![make-help](./images/carbon.png)
+```text
+$ make help
+Usage: make COMMAND
+
+Commands :
+
+help                    - List available tasks on this project
+check-env               - Check that docker is installed
+login                   - Log in to GHCR (uses GITHUB_PAT with write:packages)
+lint                    - Lint Dockerfiles (hadolint) + verify shell scripts are executable
+lint-scripts-exec       - Fail if any committed shell script lacks the +x bit
+ci                      - Run local CI checks (Dockerfile lint + build the base image)
+renovate-validate       - Validate renovate.json against the Renovate schema
+build-base-inline-cache - Build remote cache for the base image
+build-base              - Build base image
+run-base                - Run base image
+push-base               - Push base image to a registry
+delete-base             - Delete base image locally
+build-java-inline-cache - Build remote cache for the java dev image
+build-java              - Build java dev image
+run-java                - Run java dev image
+push-java               - Push java dev image to a registry
+delete-java             - Delete java dev image locally
+build-go                - Build go dev image (no secrets — image is credential-free)
+run-go                  - Run go dev image (DooD socket + runtime-injected SSH/GPG/PAT creds)
+push-go                 - Push go dev image (BLOCKED by default — local-only by policy; set ALLOW_GO_PUSH=1)
+delete-go               - Delete go dev image locally
+build-all               - Build base + go + java images
+build-push-all          - Build and push the publishable images (base + java; go is local-only)
+cleanup                 - Cleanup docker images, containers, volumes, networks, build cache
+img                     - Regenerate README screenshots (needs silicon + shutter)
+```
 
 ## Image hierarchy
 

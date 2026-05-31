@@ -22,9 +22,9 @@ Renovate-managed GitHub Actions pipeline.
 ```text
 ubuntu:26.04 (LTS)
   └─ docker-ubuntu-base   base + DevOps toolchain (mise-managed) + Docker-in-Docker
-       ├─ docker-ubuntu-java   + Java 25 LTS / Maven / Gradle, Google Cloud SDK, Cloud SQL Proxy
+       ├─ docker-ubuntu-java   + Java 25 LTS / Maven / Gradle
        └─ docker-ubuntu-go     + Go toolchain & dev CLIs, kubebuilder, goreleaser,
-                                 GPG, PostgreSQL, Google Cloud SDK, Cloud SQL Proxy
+                                 GPG, PostgreSQL
 ```
 
 The `java` and `go` images are built `FROM ghcr.io/andriykalashnykov/docker-ubuntu-base`,
@@ -34,8 +34,8 @@ so `make build-java` / `make build-go` depend on `make build-base`.
 
 All CLI tools are managed by **[mise](https://mise.jdx.dev)** and pinned in
 per-image `.mise.toml` files (`base/.mise.toml`, `java/.mise.toml`,
-`go/.mise.toml`); the base OS, mise itself, and the Google Cloud SDK are pinned
-via Dockerfile `ARG`s. Everything is kept current automatically by Renovate.
+`go/.mise.toml`); the base OS (tag + digest) and mise itself are pinned via
+Dockerfile `ARG`s. Everything is kept current automatically by Renovate.
 The full strategy and the list of what is/ isn't mise-managed is documented in
 **[TOOLING.md](./TOOLING.md)**.
 
@@ -153,7 +153,7 @@ Run `make help` for the authoritative list.
   — weekly prune of old workflow runs via the `gh` CLI.
 
 Dependency updates are handled by **Renovate** (`renovate.json`): the Ubuntu base
-tag, GitHub Action SHAs, the gcloud/mise `ARG`s, and every mise-pinned tool.
+tag (+ pinned digest), GitHub Action SHAs, the mise `ARG`, and every mise-pinned tool.
 
 ### Verify a published image signature
 

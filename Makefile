@@ -119,6 +119,21 @@ ci: lint build-base
 renovate-validate:
 	@npx --yes --package renovate -- renovate-config-validator
 
+# --- Multi-arch (arm64): PREPARED but DISABLED — builds are amd64-only for now ---
+# The images are arm64-ready: no arch-specific assets remain (gcloud removed,
+# every mise tool has verified arm64 builds, rar→unrar), and a linux/arm64 base
+# build has been confirmed to succeed. To enable arm64 later, build with buildx
+# and push a manifest list (multi-arch images cannot be `docker load`ed locally):
+#
+#   docker buildx build --platform linux/amd64,linux/arm64 \
+#     --build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) --build-arg IMAGE_LABEL=$(IMAGE) \
+#     --push -t $(IMAGE_NAME) ./base
+#
+# CI would also need: a QEMU setup or native arm64 runners, and multi-arch-aware
+# cosign signing + SBOM (sign/scan the index digest). Until then: amd64 only.
+# PLATFORMS ?= linux/amd64
+# ---------------------------------------------------------------------------------
+
 #build-base-inline-cache: @ Build remote cache for the base image
 build-base-inline-cache: check-env
 	@docker build --build-arg BUILDKIT_INLINE_CACHE=1 --build-arg IMAGE_LABEL=$(IMAGE) --build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) --build-arg USER_UID=$(USER_UID) --build-arg USER_GID=$(USER_GID) --build-arg USER_NAME=$(USER_NAME) --build-arg USER_PWD=$(USER_PWD) --build-arg ROOT_PWD=$(ROOT_PWD) -t $(IMAGE_INLINE_CACHE_NAME) ./base

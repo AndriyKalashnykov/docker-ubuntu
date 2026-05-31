@@ -20,7 +20,7 @@ make login            # Log in to GHCR (needs GITHUB_PAT with write:packages)
 make build-base       # Build base; build-java/build-go depend on this
 make build-java       # Build Java dev image (FROM base)
 make build-go         # Build Go dev image  (FROM base) — secrets via BuildKit mounts
-make run-base|run-java|run-go   # docker run -it --rm <img> bash (run-go bind-mounts the docker socket via --group-add — DooD)
+make run-base|run-java|run-go   # docker run -it --rm <img> bash (run-go bind-mounts the docker socket and CWD, joins the host docker group via --group-add — DooD)
 make delete-base|delete-java|delete-go
 make build-all        # build-base + build-go + build-java
 make build-push-all   # Build inline caches + images, push to GHCR
@@ -84,7 +84,7 @@ Three independent build contexts, one per image, layered by `FROM`:
 ubuntu:26.04 (UBUNTU_VERSION)
   └─ base/   → docker-ubuntu-base   (apt dev tools, Docker-in-Docker, mise + base toolchain)
        ├─ java/ → docker-ubuntu-java (Java 25 LTS / Maven / Gradle via mise, GCloud SDK, Cloud SQL Proxy)
-       └─ go/   → docker-ubuntu-go   (Go toolchain & CLIs via mise, kubebuilder, GPG, PostgreSQL, GCloud SDK)
+       └─ go/   → docker-ubuntu-go   (Go 1.26 toolchain & CLIs via mise, kubebuilder, GPG, PostgreSQL, GCloud SDK)
 ```
 
 Each `<context>/` directory holds: a `Dockerfile`, a pinned `.mise.toml`, and a small
@@ -106,8 +106,9 @@ Each `<context>/` directory holds: a `Dockerfile`, a pinned `.mise.toml`, and a 
   and `GCLOUD_VERSION` (Dockerfile `ARG`s) live outside mise. Java/Maven/Go and every other
   tool version live in the `.mise.toml` files — do NOT add language version vars back to
   the Makefile.
-- **gcloud download resilience**: the gcloud `curl` uses `--retry 3 --retry-all-errors
-  --connect-timeout 30` (the 150 MB tarball can time out under parallel java+go builds).
+- **gcloud download resilience**: the gcloud `curl` uses `--retry 3 --retry-delay 5
+  --retry-all-errors --connect-timeout 30` (the ~150 MB tarball can time out under
+  parallel java+go builds).
 - **Reproducible caching**: pinned tools make builds reproducible, so the old `random.org`
   cache-busting `ADD`s were removed; `build-*-inline-cache` targets push a `-cache` tag.
 
@@ -116,7 +117,7 @@ Each `<context>/` directory holds: a `Dockerfile`, a pinned `.mise.toml`, and a 
 `.github/workflows/main.yml` (`name: CI`) builds, scans, signs and **publishes base + java
 to GHCR** (the go image is local-only — it needs operator secrets). Jobs: `changes`
 (dorny/paths-filter) → `static-check` (hadolint + Trivy fs) → `build` (build → Trivy image
-scan → tag-gated push with provenance+SBOM → cosign keyless signing) → `ci-pass` aggregator.
+scan → tag-gated push → cosign keyless signing by digest → SBOM (base)) → `ci-pass` aggregator.
 Push happens on `push`/tag events only (PRs build+scan but don't push/sign).
 `cleanup-runs.yml` prunes old runs via `gh`. Renovate (`renovate.json`) updates the Ubuntu
 tag, Action SHAs, gcloud/mise ARGs, and every mise-pinned tool.

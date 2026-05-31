@@ -119,10 +119,11 @@ Run `make help` for the authoritative list.
 | `renovate-validate` | Validate `renovate.json` against the Renovate schema |
 | `build-base` / `run-base` / `push-base` / `delete-base` | Base image lifecycle |
 | `build-java` / `run-java` / `push-java` / `delete-java` | Java image lifecycle |
-| `build-go` / `run-go` / `push-go` / `delete-go` | Go image lifecycle |
+| `build-go` / `run-go` / `delete-go` | Go image lifecycle (built locally only) |
+| `push-go` | Push go image — **blocked unless `ALLOW_GO_PUSH=1`** (it bakes operator creds; private registries only) |
 | `build-base-inline-cache` / `build-java-inline-cache` | Build & push the registry inline cache |
 | `build-all` | Build base + go + java |
-| `build-push-all` | Build & push all caches and images |
+| `build-push-all` | Build & push the **publishable** images (base + java; go excluded) |
 | `cleanup` | Remove all images/layers/containers/volumes and prune build cache |
 
 ## Environment variables

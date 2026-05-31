@@ -1,7 +1,7 @@
 # https://hub.docker.com/_/ubuntu/
 
 # renovate: datasource=docker depName=ubuntu versioning=ubuntu
-ARG UBUNTU_VERSION="24.04"
+ARG UBUNTU_VERSION="26.04"
 
 FROM ubuntu:$UBUNTU_VERSION
 

@@ -26,7 +26,7 @@ ytt       = "0.55.1"          # Carvel ytt
 skaffold  = "2.21.0"
 # s2i (not in aqua registry). `version_prefix = "v"` lets Renovate's mise manager
 # resolve upstream `v1.6.1` release tags against the v-less pin (emits extractVersion).
-"github:openshift/source-to-image" = { version = "1.6.1", exe = "s2i", version_prefix = "v" }
+"github:openshift/source-to-image" = { version = "1.6.2", exe = "s2i", version_prefix = "v" }
 
 # Misc
 yq        = "4.53.2"

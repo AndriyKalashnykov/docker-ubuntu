@@ -36,6 +36,11 @@
       "description": "Hold major updates for a 3-day stability buffer before opening a PR",
       "matchUpdateTypes": ["major"],
       "minimumReleaseAge": "3 days"
+    },
+    {
+      "description": "ubuntu is tracked as a TAG/version string (the published image tag + UBUNTU_VERSION build ARGs in Makefile/java/go Dockerfiles), NOT a pullable image ref, so digest-pinning does not apply. config:best-practices pulls in docker:pinDigests (global pinDigests=true), which kept erroring the `Pin dependencies` branch trying to append @sha256 to `docker-ubuntu-base:26.04` (a tag that cannot carry a digest). The base image's own FROM digest is managed separately by the UBUNTU_DIGEST customManager, so disabling pin here is safe.",
+      "matchDepNames": ["ubuntu"],
+      "pinDigests": false
     }
   ],
   "customManagers": [

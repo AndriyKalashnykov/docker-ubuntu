@@ -27,9 +27,10 @@
       "groupName": "github-actions"
     },
     {
-      "description": "Group mise tool bumps per image",
+      "description": "Group mise tool bumps per image; hold each new version for a 3-day stability buffer so upstream GitHub Release artifacts (which mise's aqua:/github-tags backend installs) are published before the PR opens — prevents the tag-before-publish 404 (PR #96: k9s 0.50.18->0.51.0 404'd because CI ran in the ~9h window between the v0.51.0 tag and its Release publish).",
       "matchManagers": ["mise"],
-      "groupName": "mise tools"
+      "groupName": "mise tools",
+      "minimumReleaseAge": "3 days"
     },
     {
       "description": "Hold major updates for a 3-day stability buffer before opening a PR",

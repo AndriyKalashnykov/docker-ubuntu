@@ -80,11 +80,11 @@ The full strategy and the list of what is/ isn't mise-managed is documented in
 **All three images build with no host secrets** — the filesystem is credential-free.
 For the **go** image, the operator's credentials are injected **at container start**
 by `make run-go` (never baked into the image): an SSH key pair at
-`~/.ssh/id_rsa{,.pub}` or `~/.ssh/id_ed25519{,.pub}`, the GPG key pair at
-`${DOTFILES_DIR}/gnupg/AndriyKalashnykov-secret-gpg.key` + `…-ownertrust-gpg.txt`
-(`DOTFILES_DIR` defaults to `~/projects/dotfiles`), and the `GITHUB_PAT` /
+`~/.ssh/id_rsa{,.pub}` or `~/.ssh/id_ed25519{,.pub}`, a GPG secret key + ownertrust
+at `$GPG_SECRET_KEY_FILE` / `$GPG_OWNERTRUST_FILE`, and the `GITHUB_PAT` /
 `GPG_PASSPHRASE` env vars — each used only if present (otherwise a fresh SSH key is
-generated and GPG/PAT setup is skipped). These paths are owner-specific.
+generated and GPG/PAT setup is skipped). The `GPG_*` defaults point at the owner's
+dotfiles; set them to your own exported files (see the example below).
 
 ```bash
 export GITHUB_PAT=<github-pat-with-write:packages>   # for `make login` / push to GHCR
@@ -120,10 +120,13 @@ need; each is optional and used only if present:
 #   Passed by env NAME only (the value never appears in argv).
 export GITHUB_PAT=<github-pat-with-write:packages>
 
-# GPG signing key — key pair read from $DOTFILES_DIR/gnupg/ (default ~/projects/dotfiles);
-#   passphrase passed by env NAME only.
+# GPG signing key — point these at YOUR exported secret key + ownertrust files
+#   (read-only bind-mounts); the passphrase is passed by env NAME only.
+gpg --export-secret-keys --armor KEYID > ~/gpg-secret.key
+gpg --export-ownertrust                > ~/gpg-ownertrust.txt
+export GPG_SECRET_KEY_FILE=~/gpg-secret.key
+export GPG_OWNERTRUST_FILE=~/gpg-ownertrust.txt
 export GPG_PASSPHRASE=<your-gpg-key-passphrase>
-export DOTFILES_DIR=~/projects/dotfiles      # override if your dotfiles live elsewhere
 
 make build-go && make run-go                 # build (credential-free), then run with creds injected
 ```
@@ -200,7 +203,8 @@ Run `make help` for the authoritative list.
 |----------|---------|
 | `GITHUB_PAT` | GHCR auth (write:packages) for `login`/`push-*`; also injected into the **go** image `.netrc` at run time |
 | `GPG_PASSPHRASE` | GPG key passphrase for the **go** image (passed to `make run-go` at run time) |
-| `DOTFILES_DIR` | Override the dotfiles path (default `~/projects/dotfiles`) |
+| `GPG_SECRET_KEY_FILE` | Path to your exported GPG **secret key** for the **go** image (`gpg --export-secret-keys`); default is the owner's dotfiles file |
+| `GPG_OWNERTRUST_FILE` | Path to your exported GPG **ownertrust** for the **go** image (`gpg --export-ownertrust`); default is the owner's dotfiles file |
 | `IMAGE_REGISTRY` | Override the publish registry (default `ghcr.io`) |
 
 ## CI/CD

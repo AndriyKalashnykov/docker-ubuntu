@@ -66,7 +66,7 @@ bind-mounts / env supplied by `make run-go` — they never enter the image files
 | Credential | Runtime source (mounted/passed by `make run-go`) | In-container target | Absent → |
 |-----------|--------|--------|----------|
 | SSH key | `~/.ssh/id_rsa{,.pub}` → `/run/host-ssh/` (ro bind) | `~/.ssh/id_rsa{,.pub}` + `authorized_keys` | a fresh per-container key is generated |
-| GPG key | `${DOTFILES_DIR}/gnupg/AndriyKalashnykov-*.{key,txt}` → `/run/host-gpg/` (ro bind) | imported into `~/.gnupg` | GPG import skipped |
+| GPG key | `$GPG_SECRET_KEY_FILE` + `$GPG_OWNERTRUST_FILE` → `/run/host-gpg/` (ro bind) | imported into `~/.gnupg` | GPG import skipped |
 | GPG passphrase | `$GPG_PASSPHRASE` (`-e`, value from env) | used for the import | GPG import skipped |
 | GitHub PAT | `$GITHUB_PAT` (`-e`, value from env) | `~/.netrc` (0600) | `.netrc` not written |
 

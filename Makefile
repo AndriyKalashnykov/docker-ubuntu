@@ -36,7 +36,13 @@ IMAGE_GO_NAME                := $(IMAGE_REGISTRY)/$(REGISTRY_OWNER)/$(IMAGE_GO):
 
 export DOCKER_BUILDKIT=1
 
-DOTFILES_DIR ?= $(HOME)/projects/dotfiles
+# GPG key files injected into the go image at run time (optional, for signed git).
+# Point these at YOUR exported secret key + ownertrust — any name, any path:
+#   gpg --export-secret-keys --armor KEYID > secret.key
+#   gpg --export-ownertrust                > ownertrust.txt
+# Defaults are the owner's dotfiles layout; override per-invocation or via env.
+GPG_SECRET_KEY_FILE ?= $(HOME)/projects/dotfiles/gnupg/AndriyKalashnykov-secret-gpg.key
+GPG_OWNERTRUST_FILE ?= $(HOME)/projects/dotfiles/gnupg/AndriyKalashnykov-ownertrust-gpg.txt
 
 # Runtime credential injection for the go image (`make run-go`). The image bakes
 # NO secrets — the operator's SSH/GPG keys and PAT are mounted/passed at CONTAINER
@@ -60,11 +66,11 @@ endif
 ifneq ($(wildcard $(HOME)/.ssh/id_ed25519.pub),)
 GO_RUN_CREDS += -v $(HOME)/.ssh/id_ed25519.pub:/run/host-ssh/id_ed25519.pub:ro
 endif
-ifneq ($(wildcard $(DOTFILES_DIR)/gnupg/AndriyKalashnykov-secret-gpg.key),)
-GO_RUN_CREDS += -v $(DOTFILES_DIR)/gnupg/AndriyKalashnykov-secret-gpg.key:/run/host-gpg/secret.key:ro
+ifneq ($(wildcard $(GPG_SECRET_KEY_FILE)),)
+GO_RUN_CREDS += -v $(GPG_SECRET_KEY_FILE):/run/host-gpg/secret.key:ro
 endif
-ifneq ($(wildcard $(DOTFILES_DIR)/gnupg/AndriyKalashnykov-ownertrust-gpg.txt),)
-GO_RUN_CREDS += -v $(DOTFILES_DIR)/gnupg/AndriyKalashnykov-ownertrust-gpg.txt:/run/host-gpg/ownertrust.txt:ro
+ifneq ($(wildcard $(GPG_OWNERTRUST_FILE)),)
+GO_RUN_CREDS += -v $(GPG_OWNERTRUST_FILE):/run/host-gpg/ownertrust.txt:ro
 endif
 ifneq ($(strip $(GITHUB_PAT)),)
 GO_RUN_CREDS += -e GITHUB_PAT

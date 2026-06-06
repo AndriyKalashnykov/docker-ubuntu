@@ -80,11 +80,11 @@ The full strategy and the list of what is/ isn't mise-managed is documented in
 **All three images build with no host secrets** — the filesystem is credential-free.
 For the **go** image, the operator's credentials are injected **at container start**
 by `make run-go` (never baked into the image): an SSH key pair at
-`~/.ssh/id_rsa{,.pub}` or `~/.ssh/id_ed25519{,.pub}`, the GPG key pair at
-`${DOTFILES_DIR}/gnupg/AndriyKalashnykov-secret-gpg.key` + `…-ownertrust-gpg.txt`
-(`DOTFILES_DIR` defaults to `~/projects/dotfiles`), and the `GITHUB_PAT` /
-`MY_GPG_PASSWORD` env vars — each used only if present (otherwise a fresh SSH key is
-generated and GPG/PAT setup is skipped). These paths are owner-specific.
+`~/.ssh/id_rsa{,.pub}` or `~/.ssh/id_ed25519{,.pub}`, a GPG secret key + ownertrust
+at `$GPG_SECRET_KEY_FILE` / `$GPG_OWNERTRUST_FILE`, and the `GITHUB_PAT` /
+`GPG_PASSPHRASE` env vars — each used only if present (otherwise a fresh SSH key is
+generated and GPG/PAT setup is skipped). The `GPG_*` defaults point at the owner's
+dotfiles; set them to your own exported files (see the example below).
 
 ```bash
 export GITHUB_PAT=<github-pat-with-write:packages>   # for `make login` / push to GHCR
@@ -104,6 +104,40 @@ make build-go   && make run-go        # go dev image
 `PATH` (and `JAVA_HOME` / `GOROOT` set by the entrypoint). `run-go` additionally
 bind-mounts the host Docker socket (Docker-out-of-Docker) and the current directory,
 and injects your SSH/GPG keys + PAT at container start (if present on the host).
+
+### Go dev container with your SSH / GPG / GitHub credentials
+
+The **go** image is credential-free; `make run-go` injects your credentials **at
+container start** via read-only bind-mounts and env-by-name — no secret value ever
+touches `docker`'s argv, and nothing is baked into the image. Provide whichever you
+need; each is optional and used only if present:
+
+```bash
+# SSH key — auto-detected from ~/.ssh/id_rsa{,.pub} or ~/.ssh/id_ed25519{,.pub}
+#   (read-only bind-mount; if absent, a fresh per-container key is generated)
+
+# GitHub PAT — written to ~/.netrc inside the container for git-over-HTTPS auth.
+#   Passed by env NAME only (the value never appears in argv).
+export GITHUB_PAT=<github-pat-with-write:packages>
+
+# GPG signing key — point these at YOUR exported secret key + ownertrust files
+#   (read-only bind-mounts); the passphrase is passed by env NAME only.
+gpg --export-secret-keys --armor KEYID > ~/gpg-secret.key
+gpg --export-ownertrust                > ~/gpg-ownertrust.txt
+export GPG_SECRET_KEY_FILE=~/gpg-secret.key
+export GPG_OWNERTRUST_FILE=~/gpg-ownertrust.txt
+export GPG_PASSPHRASE=<your-gpg-key-passphrase>
+
+make build-go && make run-go                 # build (credential-free), then run with creds injected
+```
+
+Inside the container your SSH key is at `~/.ssh/`, your PAT is in `~/.netrc` (mode
+`0600`), and your GPG key is imported into `~/.gnupg` — ready for `git clone` over
+HTTPS and signed `git commit -S`.
+
+> **Never** pass these as `docker build --build-arg` / values on the command line —
+> that bakes the secret into the image history and exposes it via `ps` / `docker history`.
+> The runtime-injection flow above is the only supported path.
 
 ### Run a published image (no build needed)
 
@@ -168,9 +202,10 @@ Run `make help` for the authoritative list.
 | Variable | Purpose |
 |----------|---------|
 | `GITHUB_PAT` | GHCR auth (write:packages) for `login`/`push-*`; also injected into the **go** image `.netrc` at run time |
-| `MY_GPG_PASSWORD` | GPG key passphrase for the **go** image (passed to `make run-go` at run time) |
-| `DOTFILES_DIR` | Override the dotfiles path (default `~/projects/dotfiles`) |
-| `DOCKER_REGISTRY` | Override the publish registry (default `ghcr.io`) |
+| `GPG_PASSPHRASE` | GPG key passphrase for the **go** image (passed to `make run-go` at run time) |
+| `GPG_SECRET_KEY_FILE` | Path to your exported GPG **secret key** for the **go** image (`gpg --export-secret-keys`); default is the owner's dotfiles file |
+| `GPG_OWNERTRUST_FILE` | Path to your exported GPG **ownertrust** for the **go** image (`gpg --export-ownertrust`); default is the owner's dotfiles file |
+| `IMAGE_REGISTRY` | Override the publish registry (default `ghcr.io`) |
 
 ## CI/CD
 

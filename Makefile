@@ -19,24 +19,30 @@ USER_EMAIL ?= AndriyKalashnykov@gmail.com
 
 # Registry — GitHub Container Registry. Auth uses a GitHub PAT (GITHUB_PAT) with
 # write:packages. REGISTRY_OWNER MUST be lowercase (ghcr requirement).
-# `:=` (not `?=`) so an exported DOCKER_REGISTRY in the shell can't silently
-# redirect publishes; override on the command line with `make DOCKER_REGISTRY=...`.
-DOCKER_REGISTRY := ghcr.io
+# `:=` (not `?=`) so an exported IMAGE_REGISTRY in the shell can't silently
+# redirect publishes; override on the command line with `make IMAGE_REGISTRY=...`.
+IMAGE_REGISTRY := ghcr.io
 REGISTRY_OWNER  := andriykalashnykov
 
 IMAGE      := docker-ubuntu-base
 IMAGE_JAVA := docker-ubuntu-java
 IMAGE_GO   := docker-ubuntu-go
 
-IMAGE_NAME                   := $(DOCKER_REGISTRY)/$(REGISTRY_OWNER)/$(IMAGE):$(UBUNTU_VERSION)
-IMAGE_INLINE_CACHE_NAME      := $(DOCKER_REGISTRY)/$(REGISTRY_OWNER)/$(IMAGE)-cache:$(UBUNTU_VERSION)
-IMAGE_JAVA_NAME              := $(DOCKER_REGISTRY)/$(REGISTRY_OWNER)/$(IMAGE_JAVA):$(UBUNTU_VERSION)
-IMAGE_JAVA_INLINE_CACHE_NAME := $(DOCKER_REGISTRY)/$(REGISTRY_OWNER)/$(IMAGE_JAVA)-cache:$(UBUNTU_VERSION)
-IMAGE_GO_NAME                := $(DOCKER_REGISTRY)/$(REGISTRY_OWNER)/$(IMAGE_GO):$(UBUNTU_VERSION)
+IMAGE_NAME                   := $(IMAGE_REGISTRY)/$(REGISTRY_OWNER)/$(IMAGE):$(UBUNTU_VERSION)
+IMAGE_INLINE_CACHE_NAME      := $(IMAGE_REGISTRY)/$(REGISTRY_OWNER)/$(IMAGE)-cache:$(UBUNTU_VERSION)
+IMAGE_JAVA_NAME              := $(IMAGE_REGISTRY)/$(REGISTRY_OWNER)/$(IMAGE_JAVA):$(UBUNTU_VERSION)
+IMAGE_JAVA_INLINE_CACHE_NAME := $(IMAGE_REGISTRY)/$(REGISTRY_OWNER)/$(IMAGE_JAVA)-cache:$(UBUNTU_VERSION)
+IMAGE_GO_NAME                := $(IMAGE_REGISTRY)/$(REGISTRY_OWNER)/$(IMAGE_GO):$(UBUNTU_VERSION)
 
 export DOCKER_BUILDKIT=1
 
-DOTFILES_DIR ?= $(HOME)/projects/dotfiles
+# GPG key files injected into the go image at run time (optional, for signed git).
+# Point these at YOUR exported secret key + ownertrust — any name, any path:
+#   gpg --export-secret-keys --armor KEYID > secret.key
+#   gpg --export-ownertrust                > ownertrust.txt
+# Defaults are the owner's dotfiles layout; override per-invocation or via env.
+GPG_SECRET_KEY_FILE ?= $(HOME)/projects/dotfiles/gnupg/AndriyKalashnykov-secret-gpg.key
+GPG_OWNERTRUST_FILE ?= $(HOME)/projects/dotfiles/gnupg/AndriyKalashnykov-ownertrust-gpg.txt
 
 # Runtime credential injection for the go image (`make run-go`). The image bakes
 # NO secrets — the operator's SSH/GPG keys and PAT are mounted/passed at CONTAINER
@@ -60,17 +66,17 @@ endif
 ifneq ($(wildcard $(HOME)/.ssh/id_ed25519.pub),)
 GO_RUN_CREDS += -v $(HOME)/.ssh/id_ed25519.pub:/run/host-ssh/id_ed25519.pub:ro
 endif
-ifneq ($(wildcard $(DOTFILES_DIR)/gnupg/AndriyKalashnykov-secret-gpg.key),)
-GO_RUN_CREDS += -v $(DOTFILES_DIR)/gnupg/AndriyKalashnykov-secret-gpg.key:/run/host-gpg/secret.key:ro
+ifneq ($(wildcard $(GPG_SECRET_KEY_FILE)),)
+GO_RUN_CREDS += -v $(GPG_SECRET_KEY_FILE):/run/host-gpg/secret.key:ro
 endif
-ifneq ($(wildcard $(DOTFILES_DIR)/gnupg/AndriyKalashnykov-ownertrust-gpg.txt),)
-GO_RUN_CREDS += -v $(DOTFILES_DIR)/gnupg/AndriyKalashnykov-ownertrust-gpg.txt:/run/host-gpg/ownertrust.txt:ro
+ifneq ($(wildcard $(GPG_OWNERTRUST_FILE)),)
+GO_RUN_CREDS += -v $(GPG_OWNERTRUST_FILE):/run/host-gpg/ownertrust.txt:ro
 endif
 ifneq ($(strip $(GITHUB_PAT)),)
 GO_RUN_CREDS += -e GITHUB_PAT
 endif
-ifneq ($(strip $(MY_GPG_PASSWORD)),)
-GO_RUN_CREDS += -e MY_GPG_PASSWORD
+ifneq ($(strip $(GPG_PASSPHRASE)),)
+GO_RUN_CREDS += -e GPG_PASSPHRASE
 endif
 
 # make sure docker is installed
@@ -96,8 +102,8 @@ check-env:
 
 #login: @ Log in to GHCR (uses GITHUB_PAT with write:packages)
 login: check-env
-	@[ -n "$$GITHUB_PAT" ] || { echo "ERROR: GITHUB_PAT (write:packages) is required to log in to $(DOCKER_REGISTRY)"; exit 1; }
-	@printf '%s' "$$GITHUB_PAT" | docker login $(DOCKER_REGISTRY) -u $(REGISTRY_OWNER) --password-stdin
+	@[ -n "$$GITHUB_PAT" ] || { echo "ERROR: GITHUB_PAT (write:packages) is required to log in to $(IMAGE_REGISTRY)"; exit 1; }
+	@printf '%s' "$$GITHUB_PAT" | docker login $(IMAGE_REGISTRY) -u $(REGISTRY_OWNER) --password-stdin
 
 #lint: @ Lint Dockerfiles (hadolint) + verify shell scripts are executable
 lint: lint-scripts-exec

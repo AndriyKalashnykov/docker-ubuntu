@@ -31,7 +31,7 @@ make cleanup          # Remove all images/layers/exited containers/dangling vols
 validation of an image is "does it build"). `make delete-*` / `make cleanup` find images
 by the `LABEL stage=<IMAGE_LABEL>` set in each Dockerfile, so the build-arg `IMAGE_LABEL`
 is load-bearing for cleanup, not cosmetic. The registry is forced to `ghcr.io` with `:=`
-(env-pollution-proof); override per-invocation with `make DOCKER_REGISTRY=...`.
+(env-pollution-proof); override per-invocation with `make IMAGE_REGISTRY=...`.
 
 ## Tool / version management (read TOOLING.md)
 
@@ -66,8 +66,8 @@ bind-mounts / env supplied by `make run-go` — they never enter the image files
 | Credential | Runtime source (mounted/passed by `make run-go`) | In-container target | Absent → |
 |-----------|--------|--------|----------|
 | SSH key | `~/.ssh/id_rsa{,.pub}` → `/run/host-ssh/` (ro bind) | `~/.ssh/id_rsa{,.pub}` + `authorized_keys` | a fresh per-container key is generated |
-| GPG key | `${DOTFILES_DIR}/gnupg/AndriyKalashnykov-*.{key,txt}` → `/run/host-gpg/` (ro bind) | imported into `~/.gnupg` | GPG import skipped |
-| GPG passphrase | `$MY_GPG_PASSWORD` (`-e`, value from env) | used for the import | GPG import skipped |
+| GPG key | `$GPG_SECRET_KEY_FILE` + `$GPG_OWNERTRUST_FILE` → `/run/host-gpg/` (ro bind) | imported into `~/.gnupg` | GPG import skipped |
+| GPG passphrase | `$GPG_PASSPHRASE` (`-e`, value from env) | used for the import | GPG import skipped |
 | GitHub PAT | `$GITHUB_PAT` (`-e`, value from env) | `~/.netrc` (0600) | `.netrc` not written |
 
 The Makefile builds the `GO_RUN_CREDS` mount/env list conditionally (`$(wildcard ...)` +

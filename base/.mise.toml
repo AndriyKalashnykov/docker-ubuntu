@@ -20,17 +20,17 @@ flux2     = "2.8.8"
 
 # Policy / build / supply-chain
 conftest  = "0.68.2"
-opa       = "1.17.0"
+opa       = "1.17.1"
 pack      = "0.40.6"          # Cloud Native Buildpacks (buildpacks/pack)
 ytt       = "0.55.1"          # Carvel ytt
-skaffold  = "2.21.0"
+skaffold  = "2.22.0"
 # s2i (not in aqua registry). `version_prefix = "v"` lets Renovate's mise manager
 # resolve upstream `v1.6.1` release tags against the v-less pin (emits extractVersion).
 "github:openshift/source-to-image" = { version = "1.6.2", exe = "s2i", version_prefix = "v" }
 
 # Misc
 yq        = "4.53.3"
-hugo      = "0.162.1"
+hugo      = "0.163.0"
 "aqua:sharkdp/vivid" = "0.11.1"              # LS_COLORS generator
 
 [settings]

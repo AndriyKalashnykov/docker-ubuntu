@@ -22,7 +22,7 @@ ARG IMAGE_LABEL="docker-ubuntu-base"
 # mise (https://mise.jdx.dev) — the single tool-version manager for the whole
 # image hierarchy. Pinned; Renovate tracks the GitHub release.
 # renovate: datasource=github-releases depName=jdx/mise
-ARG MISE_VERSION="v2026.6.7"
+ARG MISE_VERSION="v2026.6.9"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TERM=xterm

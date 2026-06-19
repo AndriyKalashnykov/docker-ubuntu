@@ -7,7 +7,7 @@ ARG UBUNTU_VERSION="26.04"
 # customManager that captures the UBUNTU_VERSION tag + this digest together.
 # Kept separate from UBUNTU_VERSION because that var doubles as the published
 # image tag (docker-ubuntu-base:<ver>), which cannot carry an @sha256 suffix.
-ARG UBUNTU_DIGEST="sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64"
+ARG UBUNTU_DIGEST="sha256:e153663f92c94118ff22a5dc397b59b351ffd695480566debb5850e017e5937a"
 
 FROM ubuntu:${UBUNTU_VERSION}@${UBUNTU_DIGEST}
 

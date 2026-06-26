@@ -21,7 +21,7 @@ flux2     = "2.8.8"
 # Policy / build / supply-chain
 conftest  = "0.68.2"
 opa       = "1.17.1"
-pack      = "0.40.6"          # Cloud Native Buildpacks (buildpacks/pack)
+pack      = "0.40.7"          # Cloud Native Buildpacks (buildpacks/pack)
 ytt       = "0.55.1"          # Carvel ytt
 skaffold  = "2.22.0"
 # s2i (not in aqua registry). `version_prefix = "v"` lets Renovate's mise manager

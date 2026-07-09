@@ -30,7 +30,7 @@ skaffold  = "2.23.0"
 
 # Misc
 yq        = "4.53.3"
-hugo      = "0.163.3"
+hugo      = "0.164.0"
 "aqua:sharkdp/vivid" = "0.11.1"              # LS_COLORS generator
 
 [settings]

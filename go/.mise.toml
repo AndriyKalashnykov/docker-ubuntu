@@ -5,7 +5,7 @@
 # Replaces install-go-toolchain.sh and its `go install ...@latest` calls.
 
 [tools]
-go          = "1.26.4"        # current stable (was 1.18.2, EOL)
+go          = "1.26.5"        # current stable (was 1.18.2, EOL)
 kubebuilder = "4.15.0"
 
 # Prebuilt binaries via aqua (fast, no compile).

@@ -10,7 +10,7 @@
 [tools]
 # Kubernetes / cluster tooling
 kubectl   = "1.36.2"
-helm      = "4.2.2"
+helm      = "4.2.3"
 kustomize = "5.8.1"
 k9s       = "0.51.0"
 kind      = "0.32.0"

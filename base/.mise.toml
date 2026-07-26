@@ -16,7 +16,7 @@ k9s       = "0.51.0"
 kind      = "0.32.0"
 kubectx   = "0.11.0"
 kubens    = "0.11.0"
-flux2     = "2.9.2"
+flux2     = "2.9.3"
 
 # Policy / build / supply-chain
 conftest  = "0.68.2"
@@ -26,7 +26,7 @@ ytt       = "0.55.1"          # Carvel ytt
 skaffold  = "2.23.0"
 # s2i (not in aqua registry). `version_prefix = "v"` lets Renovate's mise manager
 # resolve upstream `v1.6.1` release tags against the v-less pin (emits extractVersion).
-"github:openshift/source-to-image" = { version = "1.6.2", exe = "s2i", version_prefix = "v" }
+"github:openshift/source-to-image" = { version = "1.6.3", exe = "s2i", version_prefix = "v" }
 
 # Misc
 yq        = "4.53.3"

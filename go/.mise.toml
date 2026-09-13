@@ -6,7 +6,7 @@
 
 [tools]
 go          = "1.27.1"        # current stable (was 1.18.2, EOL)
-kubebuilder = "4.15.0"
+kubebuilder = "4.16.0"
 
 # Prebuilt binaries via aqua (fast, no compile).
 "aqua:goreleaser/goreleaser" = "2.18.1"

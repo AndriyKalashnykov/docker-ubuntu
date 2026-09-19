@@ -23,7 +23,7 @@ conftest  = "0.70.0"
 opa       = "1.20.2"
 pack      = "0.40.9"          # Cloud Native Buildpacks (buildpacks/pack)
 ytt       = "0.55.2"          # Carvel ytt
-skaffold  = "2.24.0"
+skaffold  = "2.25.0"
 # s2i (not in aqua registry). `version_prefix = "v"` lets Renovate's mise manager
 # resolve upstream `v1.6.1` release tags against the v-less pin (emits extractVersion).
 "github:openshift/source-to-image" = { version = "1.6.3", exe = "s2i", version_prefix = "v" }

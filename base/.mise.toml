@@ -9,7 +9,7 @@
 
 [tools]
 # Kubernetes / cluster tooling
-kubectl   = "1.37.0"
+kubectl   = "1.37.1"
 helm      = "4.3.0"
 kustomize = "5.8.1"
 k9s       = "0.51.0"

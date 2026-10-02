@@ -29,7 +29,7 @@ skaffold  = "2.25.0"
 "github:openshift/source-to-image" = { version = "1.6.4", exe = "s2i", version_prefix = "v" }
 
 # Misc
-yq        = "4.53.6"
+yq        = "4.54.1"
 hugo      = "0.167.0"
 "aqua:sharkdp/vivid" = "0.11.1"              # LS_COLORS generator
 

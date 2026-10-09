@@ -19,7 +19,7 @@ kubens    = "0.11.0"
 flux2     = "2.9.6"
 
 # Policy / build / supply-chain
-conftest  = "0.71.0"
+conftest  = "0.71.1"
 opa       = "1.21.1"
 pack      = "0.40.9"          # Cloud Native Buildpacks (buildpacks/pack)
 ytt       = "0.55.3"          # Carvel ytt

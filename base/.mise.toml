@@ -20,7 +20,7 @@ flux2     = "2.9.6"
 
 # Policy / build / supply-chain
 conftest  = "0.71.1"
-opa       = "1.21.3"
+opa       = "1.21.4"
 pack      = "0.40.10"          # Cloud Native Buildpacks (buildpacks/pack)
 ytt       = "0.55.4"          # Carvel ytt
 skaffold  = "2.25.0"

@@ -5,11 +5,11 @@
 # Replaces install-go-toolchain.sh and its `go install ...@latest` calls.
 
 [tools]
-go          = "1.27.3"        # current stable (was 1.18.2, EOL)
+go          = "1.27.4"        # current stable (was 1.18.2, EOL)
 kubebuilder = "4.16.0"
 
 # Prebuilt binaries via aqua (fast, no compile).
-"aqua:goreleaser/goreleaser" = "2.19.0"
+"aqua:goreleaser/goreleaser" = "2.20.2"
 
 # Go dev CLIs via the mise `go:` backend — pinned, reproducible (vs `go install @latest`).
 # Dropped from the old toolchain script as obsolete/removed-from-upstream:
@@ -18,6 +18,6 @@ kubebuilder = "4.16.0"
 "go:github.com/go-delve/delve/cmd/dlv"               = "1.27.2"
 "go:github.com/mgechev/revive"                       = "1.17.1"
 "go:github.com/swaggo/swag/cmd/swag"                 = "1.16.6"
-"go:github.com/pressly/goose/v3/cmd/goose"           = "3.29.0"
+"go:github.com/pressly/goose/v3/cmd/goose"           = "3.30.1"
 "go:github.com/jfeliu007/goplantuml/cmd/goplantuml"  = "1.6.3"
 "go:golang.org/x/tools/cmd/goimports"                = "0.45.0"

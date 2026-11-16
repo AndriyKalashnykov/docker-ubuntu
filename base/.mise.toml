@@ -10,7 +10,7 @@
 [tools]
 # Kubernetes / cluster tooling
 kubectl   = "1.37.2"
-helm      = "4.3.1"
+helm      = "4.3.2"
 kustomize = "5.8.3"
 k9s       = "0.51.0"
 kind      = "0.33.0"
@@ -21,7 +21,7 @@ flux2     = "2.10.0"
 # Policy / build / supply-chain
 conftest  = "0.71.1"
 opa       = "1.22.4"
-pack      = "0.40.10"          # Cloud Native Buildpacks (buildpacks/pack)
+pack      = "0.40.11"          # Cloud Native Buildpacks (buildpacks/pack)
 ytt       = "0.55.4"          # Carvel ytt
 skaffold  = "2.25.0"
 # s2i (not in aqua registry). `version_prefix = "v"` lets Renovate's mise manager
